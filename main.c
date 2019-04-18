@@ -36,6 +36,14 @@
 #define NAME_LENGTH 9
 #define EXT_LENGTH 3
 
+struct MY_FILE{
+    uint32_t disk_loc;
+    uint16_t data_loc;
+    uint16_t data_size;
+    uint16_t fat_loc;
+    bool isEOF;
+};
+
 
 struct dir_entry{
     char name[NAME_LENGTH];
@@ -132,6 +140,32 @@ uint32_t get_dir_location(void *disk,struct dir_entry parent){
         temp_size-=BLOCK_SIZE;
     }
     return (uint32_t) (USER_SPACE_LOCATION + fat * BLOCK_SIZE + temp_size);
+}
+
+size_t seek_data(void *disk,struct MY_FILE *p_file, uint16_t offset, int whence){
+    uint32_t user_loc = p_file->disk_loc-USER_SPACE_LOCATION; //location in the user space
+    uint16_t block_loc = (uint16_t) (user_loc % BLOCK_SIZE); //location in specific block
+    uint16_t fat_loc  = (uint16_t) (user_loc / BLOCK_SIZE);
+
+}
+
+size_t read_data(void *disk,struct MY_FILE *p_file,void *data, uint16_t bytes){
+    uint16_t bytes_read = 0;
+    uint32_t user_loc = p_file->disk_loc-USER_SPACE_LOCATION; //location in the user space
+    uint16_t block_loc = (uint16_t) (user_loc % BLOCK_SIZE); //location in specific block
+    uint16_t remaining_bytes = p_file->data_size-p_file->data_loc; //amount of bytes left in file
+
+    p_file->isEOF = bytes>=remaining_bytes; //if remaining bytes is less than bytes available set EOF true
+    uint16_t  bytes_to_read = bytes<=remaining_bytes ? bytes : remaining_bytes; //only get bytes <= to bytes available
+    //set bytes to read to rest of block
+    uint16_t bytes_to_copy = (uint16_t) (BLOCK_SIZE - block_loc);
+    //set bytes to read to = rest of block or bytes
+    bytes_to_copy = bytes_to_copy <= bytes_to_read ? bytes_to_copy : bytes_to_read;
+    //copy disk to data
+    memcpy(data, disk + p_file->disk_loc, bytes_to_copy);
+    bytes_read+=bytes_to_copy;
+    p_file->data_loc+=bytes_to_copy;
+    //seek()
 }
 
 
