@@ -4,11 +4,11 @@
 
 #include "my_stack.h"
 
-void put_my_stack(struct my_stack *stack,unsigned short int element){
+void put_my_stack(struct my_stack *stack,uint16_t element){
     stack->array[stack->size++] = element;
 }
 
-unsigned short int pop_my_stack(struct my_stack *stack){
+uint16_t pop_my_stack(struct my_stack *stack){
     return stack->array[--stack->size];
 }
 
