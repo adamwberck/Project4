@@ -188,7 +188,7 @@ void *fat_location(bool isFAT1,void* data, int block){
 }
 
 struct directory_entry create_root(){
-    return create_entry("root\0","\\\\\\",1025,time(NULL),time(NULL),4093);
+    return create_entry("root\0","\\\\\\",0,time(NULL),time(NULL),0x0000);
 }
 
 struct directory_entry create_entry(char name[NAME_LENGTH],char extension[EXT_LENGTH],unsigned short int size,
