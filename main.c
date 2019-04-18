@@ -13,7 +13,7 @@
 #include <stdlib.h>
 #include "my_stack.h"
 
-#define EMPTY   0x0000
+#define FREE_BLOCK   0x0000
 #define NO_LINK 0xFFFF
 
 #define BOOT_SECTOR_SIZE 512
@@ -71,7 +71,7 @@ unsigned short get_free_block(void *data,unsigned short int start);
 
 int main(){
     FILE* disk = fopen("my_disk","w+");
-    unsigned short int empty = EMPTY;
+    unsigned short int empty = FREE_BLOCK;
     for(int i=0;i<TOTAL_SIZE;i++) {
         fwrite(&empty, sizeof(unsigned short int), 1, disk);
     }
@@ -127,6 +127,7 @@ void write_file_to_fat(struct directory_entry entry,void *data){
         unsigned short loc = pop_my_stack(&stack);//get last added block
         void *p_loc;
 
+        //write to fat
         p_loc = fat_location(true, data, loc);//get address from loc
         memcpy(p_loc, &last_loc, 2);//copy last loc to this address
         //do the same for fat2
@@ -138,27 +139,17 @@ void write_file_to_fat(struct directory_entry entry,void *data){
 }
 
 unsigned short get_free_block(void *data, unsigned short start) {
-    void *p_loc = data+FAT1_LOCATION;
-    start++;
-    start*=2;
-    //for(unsigned short i = start;i<TOTAL_BLOCKS*2;i+=2){
-    unsigned short i = start;
-    if(i>=TOTAL_BLOCKS*2){
-        i=0;
-    }
     int blocks = 1;
-    while(blocks<TOTAL_BLOCKS){
+    unsigned short test;
+    while(blocks<TOTAL_BLOCKS) {
         blocks++;
-        p_loc+=i;
-        unsigned short test;
+        start = (unsigned short) ((start + 1) % TOTAL_BLOCKS);
+        void *p_loc = fat_location(true, data, start);
         memcpy(&test,p_loc,2);
-        if(test==EMPTY){
-            return (unsigned short) (i / 2);
+        if(test==FREE_BLOCK){
+            return start;
         }
-
-        i+=2;
     }
-
     exit(1);
 }
 
@@ -188,7 +179,7 @@ void *fat_location(bool isFAT1,void* data, int block){
 }
 
 struct directory_entry create_root(){
-    return create_entry("root\0","\\\\\\",0,time(NULL),time(NULL),0x0000);
+    return create_entry("root\0","\\\\\\",0,time(NULL),time(NULL),0);
 }
 
 struct directory_entry create_entry(char name[NAME_LENGTH],char extension[EXT_LENGTH],unsigned short int size,
