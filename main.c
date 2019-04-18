@@ -10,12 +10,13 @@
 #include <sys/fcntl.h>
 #include <unistd.h>
 #include <stdbool.h>
+#include "my_stack.h"
 
 #define EMPTY   0x0000
 #define NO_LINK 0xABCD
 
 #define BOOT_SECTOR_SIZE 512
-#define TOTAL_SIZE 2096128
+#define TOTAL_SIZE 2113016
 #define BLOCK_SIZE 512
 #define TOTAL_BLOCKS 4094
 #define FAT_SIZE 8188
@@ -54,6 +55,8 @@ struct boot{
     struct directory_entry root;
 };
 
+
+void write_file_to_fat(struct directory_entry entry,void *data);
 void write_dir_entry(struct directory_entry entry,void *data,unsigned int location);
 void *fat_location(bool isFAT1, void* data,int block);
 struct directory_entry create_root();
@@ -62,6 +65,8 @@ struct directory_entry create_entry(char name[9],char extension[3],unsigned shor
         time_t mod_time,unsigned short int FAT_location);
 
 void print_mapped_data(unsigned char *mapped_data);
+
+unsigned short get_free_block(void *data);
 
 int main(){
     printf("%zu\n", sizeof(char));
@@ -86,15 +91,7 @@ int main(){
     int i_disk = open("my_disk",O_RDWR,0);
     void *mapped_data = mmap(NULL,TOTAL_SIZE,PROT_READ|PROT_WRITE,MAP_SHARED,i_disk,0);
     write_dir_entry(my_boot.root,mapped_data,ROOT_LOCATION);
-
-    /*
-    unsigned char loc[2]; loc[0] = NO_LINK & 0xFF; loc[1] = NO_LINK>>8;
-    mapped_data[FAT1_LOCATION+my_boot.root.FAT_location]   =  loc[0];
-    mapped_data[FAT1_LOCATION+my_boot.root.FAT_location+1] =  loc[1];
-    mapped_data[FAT2_LOCATION+my_boot.root.FAT_location]   =  loc[0];
-    mapped_data[FAT2_LOCATION+my_boot.root.FAT_location+1] =  loc[1];
-    */
-
+    write_file_to_fat(my_boot.root,mapped_data);
 
     //print_mapped_data(mapped_data);
 }
@@ -113,13 +110,27 @@ void write_file_to_fat(struct directory_entry entry,void *data){
     int blocks = (entry.size/BLOCK_SIZE);
     //add a block if there is more data left over
     blocks+= entry.size % BLOCK_SIZE == 0 ? 0 : 1;
-
-    unsigned short int lnk = entry.FAT_location;
-
+    struct my_stack stack = create_my_stack();
+    put_my_stack(&stack,entry.FAT_location);
+    blocks =2;
+    for(int i=1;i<blocks;i++){
+        unsigned short int free = get_free_block(data);
+        put_my_stack(&stack,free);
+    }
+    /*
     void *p_loc = fat_location(true,data,lnk);
     memcpy(p_loc,&lnk,2);
     p_loc = fat_location(false,data,lnk);
-    memcpy(p_loc,&lnk,2);
+    memcpy(p_loc,&lnk,2);*/
+}
+
+unsigned short get_free_block(void *data) {
+    void *p_loc = data+FAT1_LOCATION;
+    for(void *i=p_loc; i < data+FAT2_LOCATION; i+=2){
+        unsigned short int test;
+        memcpy(&test,p_loc,2);
+        printf("loc %d test %d\n", (int) (i - p_loc), test);
+    }
 }
 
 
