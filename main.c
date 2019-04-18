@@ -36,7 +36,7 @@
 #define EXT_LENGTH 3
 
 
-struct directory_entry{
+struct dir_entry{
     char name[NAME_LENGTH];
     char extension[EXT_LENGTH];
     unsigned short int size;
@@ -47,27 +47,30 @@ struct directory_entry{
 
 struct boot{
     char valid_check[24];
-    unsigned short int boot_sector_size; //512
+    unsigned short boot_sector_size; //512
     unsigned int total_size; //2096128
-    unsigned short int block_size; //512
-    unsigned short int total_blocks; //4094
-    unsigned short int FAT_size; //8188
-    unsigned short int max_size; //65535
-    struct directory_entry root;
+    unsigned short block_size; //512
+    unsigned short total_blocks; //4094
+    unsigned short FAT_size; //8188
+    unsigned short max_size; //65535
+    struct dir_entry root;
 };
 
 
-void write_file_to_fat(struct directory_entry entry,void *data);
-void write_dir_entry(struct directory_entry entry,void *data,unsigned int location);
-void *fat_location(bool isFAT1, void* data,int block);
-struct directory_entry create_root();
+void create_file(void *disk,struct dir_entry parent, char name[NAME_LENGTH],char ext[EXT_LENGTH],
+                 char *data,unsigned short size);
+void write_file_to_fat(struct dir_entry entry,void *disk);
+void write_dir_entry(struct dir_entry entry,void *disk,unsigned int location);
+unsigned short fat_value(void* disk, unsigned short block);
+void *fat_location(bool isFAT1, void* data,unsigned short block);
+struct dir_entry create_root();
 struct boot create_boot();
-struct directory_entry create_entry(char name[9],char extension[3],unsigned short int size, time_t create_time,
-        time_t mod_time,unsigned short int FAT_location);
+struct dir_entry create_entry(char name[9],char extension[3],unsigned short size, time_t create_time,
+        time_t mod_time,unsigned short FAT_location);
 
 void print_mapped_data(unsigned char *mapped_data);
 
-unsigned short get_free_block(void *data,unsigned short int start);
+unsigned short get_free_block(void *disk,unsigned short start);
 
 int main(){
     FILE* disk = fopen("my_disk","w+");
@@ -92,6 +95,12 @@ int main(){
     write_dir_entry(my_boot.root,mapped_data,ROOT_LOCATION);
     write_file_to_fat(my_boot.root,mapped_data);
 
+    char *data = "Hello this is a test file.\0";
+    create_file(disk,my_boot.root,"test\0","txt",data,27);
+
+
+
+
     void *p = mapped_data+FAT2_LOCATION;
     unsigned short d = 0xABCD;
     memcpy(p,&d,2);
@@ -107,9 +116,30 @@ void print_mapped_data(unsigned char *mapped_data) {
     }
 }
 
-void write_file_to_fat(struct directory_entry entry,void *data){
+unsigned int get_dir_location(void *disk,struct dir_entry parent){
+    int temp_size = parent.size;
+    unsigned short fat = parent.FAT_location;
+    while(temp_size>512){
+        fat = fat_value(disk,fat);
+        temp_size-=512;
+    }
+    return (unsigned int) (USER_SPACE_LOCATION + fat * BLOCK_SIZE + temp_size);
+}
+
+
+void create_file(void *disk,struct dir_entry parent, char name[NAME_LENGTH],char ext[EXT_LENGTH],
+        char *data,unsigned short size){
+    time_t the_time = time(NULL);
+    unsigned short loc = get_free_block(disk,0x0001);
+    struct dir_entry entry = create_entry(name,ext,size,the_time,the_time,loc);
+    unsigned int location = get_dir_location(disk,parent);
+    printf("location %x\n",location);
+    //write_dir_entry(entry,disk,)
+}
+
+void write_file_to_fat(struct dir_entry entry,void *disk){
     int blocks = (entry.size/BLOCK_SIZE);
-    //add a block if there is more data left over or if size is zero
+    //add a block if there is more disk left over or if size is zero
     blocks+= entry.size % BLOCK_SIZE == 0 && blocks>0 ? 0 : 1;
 
     struct my_stack stack = create_my_stack();//create stack to add empty blocks
@@ -117,7 +147,7 @@ void write_file_to_fat(struct directory_entry entry,void *data){
     //add extra blocks
     unsigned short int free = entry.FAT_location;
     for(int i=1;i<blocks;i++){
-        free = get_free_block(data,free);
+        free = get_free_block(disk,free);
         put_my_stack(&stack,free);
     }
     //set the fat using the stack
@@ -128,24 +158,22 @@ void write_file_to_fat(struct directory_entry entry,void *data){
         void *p_loc;
 
         //write to fat
-        p_loc = fat_location(true, data, loc);//get address from loc
+        p_loc = fat_location(true, disk, loc);//get address from loc
         memcpy(p_loc, &last_loc, 2);//copy last loc to this address
         //do the same for fat2
-        //p_loc = fat_location(false, data, loc);
-        //memcpy(p_loc, &last_loc, 2);
+        p_loc = fat_location(false, disk, loc);
+        memcpy(p_loc, &last_loc, 2);
 
         last_loc = loc;//reset fat
     }
 }
 
-unsigned short get_free_block(void *data, unsigned short start) {
+unsigned short get_free_block(void *disk, unsigned short start) {
     int blocks = 1;
-    unsigned short test;
     while(blocks<TOTAL_BLOCKS) {
         blocks++;
         start = (unsigned short) ((start + 1) % TOTAL_BLOCKS);
-        void *p_loc = fat_location(true, data, start);
-        memcpy(&test,p_loc,2);
+        unsigned short test = fat_value(disk,start);
         if(test==FREE_BLOCK){
             return start;
         }
@@ -154,8 +182,8 @@ unsigned short get_free_block(void *data, unsigned short start) {
 }
 
 
-void write_dir_entry(struct directory_entry entry,void *data,unsigned int location){
-    void *p_loc = data+location;
+void write_dir_entry(struct dir_entry entry,void *disk,unsigned int location){
+    void *p_loc = disk+location;
     memcpy(p_loc,entry.name,NAME_LENGTH);
 
     p_loc+=NAME_LENGTH;
@@ -173,18 +201,25 @@ void write_dir_entry(struct directory_entry entry,void *data,unsigned int locati
     p_loc+=sizeof(entry.mod_time);
     memcpy(p_loc,&entry.FAT_location, sizeof(entry.FAT_location));
 }
-void *fat_location(bool isFAT1,void* data, int block){
+void *fat_location(bool isFAT1,void* data, unsigned short block){
     int FAT_loc = isFAT1 ? FAT1_LOCATION : FAT2_LOCATION ;
     return data+FAT_loc + block*2;
 }
 
-struct directory_entry create_root(){
+unsigned short fat_value(void* disk, unsigned short block){
+    void *p_loc = fat_location(true, disk, block);
+    unsigned short return_value;
+    memcpy(&return_value,p_loc,2);
+    return return_value;
+}
+
+struct dir_entry create_root(){
     return create_entry("root\0","\\\\\\",0,time(NULL),time(NULL),0);
 }
 
-struct directory_entry create_entry(char name[NAME_LENGTH],char extension[EXT_LENGTH],unsigned short int size,
-        time_t create_time, time_t mod_time,unsigned short int FAT_location){
-    struct directory_entry entry;
+struct dir_entry create_entry(char name[NAME_LENGTH],char extension[EXT_LENGTH],unsigned short size,
+        time_t create_time, time_t mod_time,unsigned short FAT_location){
+    struct dir_entry entry;
     strcpy(entry.name,name);
     strcpy(entry.extension,extension);
     entry.size = size;
