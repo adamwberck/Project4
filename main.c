@@ -208,11 +208,15 @@ unsigned short get_free_block(void *disk, unsigned short start) {
 
 
 void write_dir_entry(struct dir_entry entry,void *disk,unsigned int location){
+    char *null_str = "\0\0\0\0\0\0\0\0\0";
+
     void *p_loc = disk+location;
-    memcpy(p_loc,entry.name,NAME_LENGTH);
+    memcpy(p_loc,null_str,NAME_LENGTH);
+    memcpy(p_loc,entry.name,strlen(entry.name));
 
     p_loc+=NAME_LENGTH;
-    memcpy(p_loc,entry.extension,EXT_LENGTH);
+    memcpy(p_loc,null_str,EXT_LENGTH);
+    memcpy(p_loc,entry.extension,strlen(entry.extension));
 
     p_loc+=EXT_LENGTH;
     memcpy(p_loc,&entry.size, sizeof(entry.size));
