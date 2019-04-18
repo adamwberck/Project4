@@ -97,8 +97,15 @@ int main(){
     write_dir_entry(my_boot.root,disk,ROOT_LOCATION);
     write_file_to_fat(my_boot.root,disk);
 
-    char *data = "Hello this is a test file.\0";
-    create_file(disk,my_boot.root,"test\0","txt",data,27);
+    char *data = "Hello this is a test file. The quick fox jumped over the lazy brown dog. Iron man is the first, "
+                 "then the Hulk, then Thor, and finally Captain America."
+                 "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nunc neque tortor, eleifend ut nisi vel,"
+                 " porttitor facilisis sem. Mauris consectetur purus ex, a condimentum leo consectetur sit amet."
+                 " Pellentesque at feugiat dolor. Ut accumsan lectus quis nulla vestibulum ornare."
+                 " Curabitur ultrices pulvinar nisl, ac aliquet nibh venenatis sed."
+                 " Phasellus lobortis et felis non semper. Vivamus eu dolor ut tellus lacinia viverra."
+                 " Donec egestas, ligula eget mattis scelerisque, lacus ante consectetur erat sed.\0";
+    create_file(disk, my_boot.root, "test\0", "txt", data, (unsigned short) strlen(data));
 
 
     //void *p = disk+USER_SPACE_LOCATION;
@@ -149,6 +156,8 @@ void write_data(void *disk,char *data,unsigned short size,unsigned short fat_loc
         memcpy(disk+disk_loc,block_of_data,BLOCK_SIZE);
 
         fat_loc=fat_value(disk,fat_loc);
+        disk_loc = USER_SPACE_LOCATION+fat_loc*BLOCK_SIZE;
+        data += BLOCK_SIZE;
         temp_size -= BLOCK_SIZE;
     }
 }
