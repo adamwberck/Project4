@@ -82,7 +82,7 @@ void print_mapped_data(unsigned char *mapped_data);
 uint16_t get_free_block(void *disk,uint16_t start);
 
 size_t read_data(void *disk,struct MY_FILE *p_file,void *data, uint16_t bytes);
-
+off_t fsize(const char *filename);
 int main(){
     FILE* new_disk = fopen("my_disk","w+");
     uint16_t empty = FREE_BLOCK;
@@ -106,14 +106,11 @@ int main(){
     write_dir_entry(my_boot.root,disk,ROOT_LOCATION);
     write_file_to_fat(my_boot.root,disk);
 
-    char *data = "Hello this is a test file. The quick fox jumped over the lazy brown dog. Iron man is the first, "
-                 "then the Hulk, then Thor, and finally Captain America."
-                 "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nunc neque tortor, eleifend ut nisi vel,"
-                 " porttitor facilisis sem. Mauris consectetur purus ex, a condimentum leo consectetur sit amet."
-                 " Pellentesque at feugiat dolor. Ut accumsan lectus quis nulla vestibulum ornare."
-                 " Curabitur ultrices pulvinar nisl, ac aliquet nibh venenatis sed."
-                 " Phasellus lobortis et felis non semper. Vivamus eu dolor ut tellus lacinia viverra."
-                 " Donec egestas, ligula eget mattis scelerisque, lacus ante consectetur erat sed.\0";
+    FILE *test_file = fopen("Test File.txt","r");
+    int test_file_size = (int) fsize("Test File.txt");
+    printf("size %d\n",  test_file_size);
+    char *data = malloc(sizeof(char)*test_file_size);
+    fread(data, sizeof(char), (size_t) test_file_size, test_file);
     struct dir_entry test = create_file(disk, my_boot.root, "test\0", "txt", data, (uint16_t) strlen(data));
     struct MY_FILE file;
     file.data_loc = 0;
@@ -126,7 +123,7 @@ int main(){
     while(!file.isEOF) {
         read_data(disk, &file, test_data, read_amount);
         test_data[read_amount] = '\0';
-        printf("%s\n", test_data);
+        printf("%s", test_data);
     }
 
 
@@ -135,6 +132,16 @@ int main(){
     //memcpy(p,&d,2);
     //print_mapped_data(mapped_data);
 }
+
+off_t fsize(const char *filename) {
+    struct stat st;
+
+    if (stat(filename, &st) == 0)
+        return st.st_size;
+
+    return -1;
+}
+
 
 void print_mapped_data(unsigned char *mapped_data) {
     for(int i=FAT1_LOCATION; i < FAT1_LOCATION+16; i++){
