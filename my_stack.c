@@ -9,7 +9,7 @@ void put_my_stack(struct my_stack *stack,unsigned short int element){
 }
 
 unsigned short int pop_my_stack(struct my_stack *stack){
-    return stack->array[stack->size--];
+    return stack->array[--stack->size];
 }
 
 struct my_stack create_my_stack(){

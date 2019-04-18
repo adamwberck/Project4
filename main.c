@@ -10,10 +10,11 @@
 #include <sys/fcntl.h>
 #include <unistd.h>
 #include <stdbool.h>
+#include <stdlib.h>
 #include "my_stack.h"
 
 #define EMPTY   0x0000
-#define NO_LINK 0xABCD
+#define NO_LINK 0xFFFF
 
 #define BOOT_SECTOR_SIZE 512
 #define TOTAL_SIZE 2113016
@@ -66,11 +67,9 @@ struct directory_entry create_entry(char name[9],char extension[3],unsigned shor
 
 void print_mapped_data(unsigned char *mapped_data);
 
-unsigned short get_free_block(void *data);
+unsigned short get_free_block(void *data,unsigned short int start);
 
 int main(){
-    printf("%zu\n", sizeof(char));
-
     FILE* disk = fopen("my_disk","w+");
     unsigned short int empty = EMPTY;
     for(int i=0;i<TOTAL_SIZE;i++) {
@@ -93,6 +92,9 @@ int main(){
     write_dir_entry(my_boot.root,mapped_data,ROOT_LOCATION);
     write_file_to_fat(my_boot.root,mapped_data);
 
+    void *p = mapped_data+FAT2_LOCATION;
+    unsigned short d = 0xABCD;
+    memcpy(p,&d,2);
     //print_mapped_data(mapped_data);
 }
 
@@ -106,31 +108,58 @@ void print_mapped_data(unsigned char *mapped_data) {
 }
 
 void write_file_to_fat(struct directory_entry entry,void *data){
-    int no_link = NO_LINK;
     int blocks = (entry.size/BLOCK_SIZE);
-    //add a block if there is more data left over
-    blocks+= entry.size % BLOCK_SIZE == 0 ? 0 : 1;
-    struct my_stack stack = create_my_stack();
-    put_my_stack(&stack,entry.FAT_location);
-    blocks =2;
+    //add a block if there is more data left over or if size is zero
+    blocks+= entry.size % BLOCK_SIZE == 0 && blocks>0 ? 0 : 1;
+
+    struct my_stack stack = create_my_stack();//create stack to add empty blocks
+    put_my_stack(&stack,entry.FAT_location);//put block already allocated when adding to directory
+    //add extra blocks
+    unsigned short int free = entry.FAT_location;
     for(int i=1;i<blocks;i++){
-        unsigned short int free = get_free_block(data);
+        free = get_free_block(data,free);
         put_my_stack(&stack,free);
     }
-    /*
-    void *p_loc = fat_location(true,data,lnk);
-    memcpy(p_loc,&lnk,2);
-    p_loc = fat_location(false,data,lnk);
-    memcpy(p_loc,&lnk,2);*/
+    //set the fat using the stack
+    unsigned short int last_loc = NO_LINK;//add no link
+
+    while(stack.size>0) {
+        unsigned short loc = pop_my_stack(&stack);//get last added block
+        void *p_loc;
+
+        p_loc = fat_location(true, data, loc);//get address from loc
+        memcpy(p_loc, &last_loc, 2);//copy last loc to this address
+        //do the same for fat2
+        //p_loc = fat_location(false, data, loc);
+        //memcpy(p_loc, &last_loc, 2);
+
+        last_loc = loc;//reset fat
+    }
 }
 
-unsigned short get_free_block(void *data) {
+unsigned short get_free_block(void *data, unsigned short start) {
     void *p_loc = data+FAT1_LOCATION;
-    for(void *i=p_loc; i < data+FAT2_LOCATION; i+=2){
-        unsigned short int test;
-        memcpy(&test,p_loc,2);
-        printf("loc %d test %d\n", (int) (i - p_loc), test);
+    start++;
+    start*=2;
+    //for(unsigned short i = start;i<TOTAL_BLOCKS*2;i+=2){
+    unsigned short i = start;
+    if(i>=TOTAL_BLOCKS*2){
+        i=0;
     }
+    int blocks = 1;
+    while(blocks<TOTAL_BLOCKS){
+        blocks++;
+        p_loc+=i;
+        unsigned short test;
+        memcpy(&test,p_loc,2);
+        if(test==EMPTY){
+            return (unsigned short) (i / 2);
+        }
+
+        i+=2;
+    }
+
+    exit(1);
 }
 
 
@@ -159,7 +188,7 @@ void *fat_location(bool isFAT1,void* data, int block){
 }
 
 struct directory_entry create_root(){
-    return create_entry("root\0","\\\\\\",0,time(NULL),time(NULL),0x0000);
+    return create_entry("root\0","\\\\\\",1025,time(NULL),time(NULL),4093);
 }
 
 struct directory_entry create_entry(char name[NAME_LENGTH],char extension[EXT_LENGTH],unsigned short int size,
