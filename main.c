@@ -12,6 +12,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <math.h>
+#include <assert.h>
 #include "my_stack.h"
 
 #define FREE_BLOCK   0x0000
@@ -129,19 +130,32 @@ int main(){
     root_pointer.DATA_SIZE=my_boot.root.size;
 
 
-
-    MY_FILE *file = create_file(disk, &root_pointer, "test\0", "txt", data, (uint16_t) strlen(data));
+    for(int i=0;i<100;i++) {
+        uint16_t bytes = (uint16_t) (random() % strlen(data));
+        char name[7];
+        strcpy(name,"test");
+        char str[3];
+        sprintf(str,"%d",i);
+        strcat(name,str);
+        strcat(name,"\0");
+        printf("%s\n",name);
+        MY_FILE *file = create_file(disk, &root_pointer, name, "txt", data, bytes);
+    }
     uint16_t read_amount = 550;
     char *test_data = malloc((read_amount+1)*sizeof(char));
 
+    //read file
+    /*
     while(!file->isEOF) {
         int bytes_written = read_data(disk, file, test_data, read_amount);
         test_data[bytes_written] = '\0';
         printf("%s", test_data);
     }
+    */
+
     MY_FILE rootFile; rootFile.isEOF=false; rootFile.DATA_SIZE=my_boot.root.size;
     rootFile.FAT_LOC=my_boot.root.FAT_location; rootFile.data_loc=0;
-    delete_file(disk,&rootFile,"test","txt");
+    //delete_file(disk,&rootFile,"test","txt");
 }
 
 void delete_file(void *disk,MY_FILE *parent, char filename[NAME_LENGTH],char ext[EXT_LENGTH] ){
@@ -223,6 +237,7 @@ uint16_t read_data(void *disk,struct MY_FILE *p_file,char *data, uint16_t bytes)
 uint32_t get_disk_pos(void *disk, uint16_t fat_loc, uint16_t data_loc){
     while(data_loc>BLOCK_SIZE){
         fat_loc = fat_value(disk,fat_loc);
+        assert(fat_loc!=NO_LINK);
         data_loc-=BLOCK_SIZE;
     }
     return (uint32_t) (USER_SPACE_LOCATION + fat_loc * BLOCK_SIZE + data_loc);
