@@ -41,7 +41,7 @@ struct MY_FILE{
     uint16_t data_size;
     uint16_t fat_loc;
     bool isEOF;
-};
+}typedef MY_FILE;
 
 
 struct dir_entry{
@@ -68,7 +68,7 @@ struct boot{
 uint16_t write_data(void *disk, struct MY_FILE *p_file, void *data, uint16_t bytes);
 uint16_t block_pos(void *disk,uint16_t fat_loc,uint16_t data_loc);
 uint32_t disk_pos(void* disk, uint16_t fat_loc,uint16_t data_loc);
-struct dir_entry create_file(void *disk,struct dir_entry parent, char name[NAME_LENGTH],char ext[EXT_LENGTH],
+MY_FILE *create_file(void *disk,struct dir_entry parent, char name[NAME_LENGTH],char ext[EXT_LENGTH],
                  char *data,uint16_t size);
 void write_file_to_fat(struct dir_entry entry,void *disk);
 void write_dir_entry(struct dir_entry entry,void *disk,uint32_t location);
@@ -86,7 +86,7 @@ uint16_t get_free_block(void *disk,uint16_t start);
 uint16_t read_data(void *disk,struct MY_FILE *p_file,char *data, uint16_t bytes);
 off_t fsize(const char *filename);
 int main(){
-    FILE* new_disk = fopen("my_disk","w+");
+    FILE *new_disk = fopen("my_disk","w+");
     uint16_t empty = FREE_BLOCK;
     for(int i=0;i<TOTAL_SIZE;i++) {
         fwrite(&empty, sizeof(uint16_t), 1, new_disk);
@@ -108,23 +108,20 @@ int main(){
     write_dir_entry(my_boot.root,disk,ROOT_LOCATION);
     write_file_to_fat(my_boot.root,disk);
 
+    //Load Test File.txt to write to disk
     FILE *test_file = fopen("Test File.txt","r");
     int test_file_size = (int) fsize("Test File.txt");
     printf("size %d\n",  test_file_size);
     char *data = malloc(sizeof(char)*test_file_size);
     fprintf(test_file,"%s",data);
     fread(data, sizeof(char), (size_t) test_file_size, test_file);
-    struct dir_entry test = create_file(disk, my_boot.root, "test\0", "txt", data, (uint16_t) strlen(data));
-    struct MY_FILE file;
-    file.data_loc = 0;
-    file.fat_loc = test.FAT_location;
-    file.data_size = test.size;
-    file.isEOF = false;
+
+    MY_FILE *file = create_file(disk, my_boot.root, "test\0", "txt", data, (uint16_t) strlen(data));
     uint16_t read_amount = 550;
     char *test_data = malloc((read_amount+1)*sizeof(char));
 
-    while(!file.isEOF) {
-        int bytes_written = read_data(disk, &file, test_data, read_amount);
+    while(!file->isEOF) {
+        int bytes_written = read_data(disk, file, test_data, read_amount);
         test_data[bytes_written] = '\0';
         printf("%s", test_data);
     }
@@ -160,7 +157,7 @@ uint32_t get_dir_location(void *disk,struct dir_entry parent){
     return (uint32_t) (USER_SPACE_LOCATION + fat * BLOCK_SIZE + temp_size);
 }
 
-size_t seek_data(void *disk,struct MY_FILE *p_file, uint16_t offset, int whence){
+uint16_t seek_data(void *disk,struct MY_FILE *p_file, uint16_t offset, int whence){
     /*
     uint32_t user_loc = p_file->disk_pos-USER_SPACE_LOCATION; //location in the user space
     uint16_t block_loc = (uint16_t) (user_loc % BLOCK_SIZE); //location in specific block
@@ -200,22 +197,23 @@ uint32_t disk_pos(void* disk, uint16_t fat_loc,uint16_t data_loc){
     return (uint32_t) (USER_SPACE_LOCATION + fat_loc * BLOCK_SIZE + data_loc);
 }
 
-struct dir_entry create_file(void *disk,struct dir_entry parent, char name[NAME_LENGTH],char ext[EXT_LENGTH],
+MY_FILE *create_file(void *disk,struct dir_entry parent, char name[NAME_LENGTH],char ext[EXT_LENGTH],
         char *data,uint16_t size){
     time_t the_time = time(NULL);
     uint16_t fat_loc = get_free_block(disk,0x0000);
     struct dir_entry entry = create_entry(name,ext,size,the_time,the_time,fat_loc);
     uint32_t disk_loc = get_dir_location(disk,parent);
-    //printf("disk_loc %x\n",disk_loc);
     write_dir_entry(entry,disk,disk_loc);
     write_file_to_fat(entry,disk);
-    struct MY_FILE my_file;
-    my_file.data_loc=0;
-    my_file.fat_loc=fat_loc;
-    my_file.data_size=size;
-    my_file.isEOF =false;
-    write_data(disk, &my_file, data, size);
-    return entry;
+    //init the file pointer
+    MY_FILE *my_file=malloc(sizeof(MY_FILE));
+    my_file->data_loc = 0;
+    my_file->fat_loc = fat_loc;
+    my_file->data_size=size;
+    my_file->isEOF =false;
+    write_data(disk, my_file, data, size);
+    my_file->data_loc = 0;
+    return my_file;
 }
 
 uint16_t block_pos(void *disk,uint16_t fat_loc,uint16_t data_loc){
