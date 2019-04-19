@@ -64,7 +64,7 @@ struct boot{
     struct dir_entry root;
 };
 
-
+void delete_file(void *disk,MY_FILE *parent, char filename[NAME_LENGTH],char ext[EXT_LENGTH] );
 uint16_t write_data(void *disk, struct MY_FILE *p_file, void *data, uint16_t bytes);
 uint16_t block_pos(void *disk,uint16_t fat_loc,uint16_t data_loc);
 uint32_t disk_pos(void* disk, uint16_t fat_loc,uint16_t data_loc);
@@ -103,6 +103,7 @@ int main(){
     //write_dir_entry(my_boot.root,new_disk);
     fclose(new_disk);
 
+    //COPY data using mmap();
     int i_disk = open("my_disk",O_RDWR,0);
     void *disk = mmap(NULL,TOTAL_SIZE,PROT_READ|PROT_WRITE,MAP_SHARED,i_disk,0);
     write_dir_entry(my_boot.root,disk,ROOT_LOCATION);
@@ -115,7 +116,9 @@ int main(){
     char *data = malloc(sizeof(char)*test_file_size);
     fprintf(test_file,"%s",data);
     fread(data, sizeof(char), (size_t) test_file_size, test_file);
+    fclose(test_file);
 
+    //create test file write to logic dir, write to fat, and write to disk
     MY_FILE *file = create_file(disk, my_boot.root, "test\0", "txt", data, (uint16_t) strlen(data));
     uint16_t read_amount = 550;
     char *test_data = malloc((read_amount+1)*sizeof(char));
@@ -125,6 +128,23 @@ int main(){
         test_data[bytes_written] = '\0';
         printf("%s", test_data);
     }
+    MY_FILE rootFile; rootFile.isEOF=false; rootFile.data_size=my_boot.root.size;
+    rootFile.fat_loc=my_boot.root.FAT_location; rootFile.data_loc=0;
+    delete_file(disk,&rootFile,"test","txt");
+}
+
+void delete_file(void *disk,MY_FILE *parent, char filename[NAME_LENGTH],char ext[EXT_LENGTH] ){
+    char target[NAME_LENGTH+EXT_LENGTH+1];
+    memcpy(target,filename,NAME_LENGTH);
+    memcpy(target+NAME_LENGTH,ext,EXT_LENGTH);
+    target[NAME_LENGTH+EXT_LENGTH]='\0';
+
+    char file_info[ENTRY_SIZE];
+    read_data(disk,parent,file_info,ENTRY_SIZE);
+    char name_and_ext[NAME_LENGTH+EXT_LENGTH+1];
+    memcpy(name_and_ext,file_info,8);name_and_ext[NAME_LENGTH+EXT_LENGTH]='\0';
+
+    printf("test delete %d\n",strcmp(target,name_and_ext)==0);
 }
 
 off_t fsize(const char *filename) {
