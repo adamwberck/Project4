@@ -83,7 +83,6 @@ struct boot create_boot();
 struct dir_entry create_entry(char name[9],char extension[3],uint16_t size, time_t create_time,
         time_t mod_time,uint16_t FAT_location);
 
-void print_mapped_data(unsigned char *mapped_data);
 
 uint16_t get_free_block(void *disk,uint16_t start);
 
@@ -129,7 +128,7 @@ int main(){
     root_pointer.data_loc=0;
     root_pointer.DATA_SIZE=my_boot.root.size;
 
-
+    srandom((unsigned int) time(NULL));
     for(int i=0;i<100;i++) {
         uint16_t bytes = (uint16_t) (random() % strlen(data));
         char name[7];
@@ -138,7 +137,7 @@ int main(){
         sprintf(str,"%d",i);
         strcat(name,str);
         strcat(name,"\0");
-        printf("%s\n",name);
+        printf("%s %d \n",name,bytes);
         MY_FILE *file = create_file(disk, &root_pointer, name, "txt", data, bytes);
     }
     uint16_t read_amount = 550;
@@ -179,16 +178,6 @@ off_t fsize(const char *filename) {
         return st.st_size;
 
     return -1;
-}
-
-
-void print_mapped_data(unsigned char *mapped_data) {
-    for(int i=FAT1_LOCATION; i < FAT1_LOCATION+16; i++){
-        if(i%16==0){
-            printf("\n");
-        }
-        printf("%02x ",mapped_data[i]);
-    }
 }
 
 //TODO check duplicate file name
@@ -290,7 +279,6 @@ MY_FILE *create_file(void *disk,MY_FILE *parent, char name[NAME_LENGTH],char ext
     uint16_t d_size;
     memcpy(&d_size,disk+dir_disk_loc+NAME_LENGTH+EXT_LENGTH, sizeof(uint16_t));
     d_size+=ENTRY_SIZE;
-    printf("size entry %d\n",d_size);
     memcpy(disk+dir_disk_loc+NAME_LENGTH+EXT_LENGTH,&d_size,sizeof(uint16_t));
 
     //add file info to the directory
