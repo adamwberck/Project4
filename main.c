@@ -65,10 +65,9 @@ struct boot{
 };
 
 
-uint16_t write_dataV2(void *disk,struct MY_FILE *p_file,void *data, uint16_t bytes);
+uint16_t write_data(void *disk, struct MY_FILE *p_file, void *data, uint16_t bytes);
 uint16_t block_pos(void *disk,uint16_t fat_loc,uint16_t data_loc);
 uint32_t disk_pos(void* disk, uint16_t fat_loc,uint16_t data_loc);
-void write_data(void *disk,char *data,uint16_t size,uint16_t fat_loc);
 struct dir_entry create_file(void *disk,struct dir_entry parent, char name[NAME_LENGTH],char ext[EXT_LENGTH],
                  char *data,uint16_t size);
 void write_file_to_fat(struct dir_entry entry,void *disk);
@@ -84,7 +83,7 @@ void print_mapped_data(unsigned char *mapped_data);
 
 uint16_t get_free_block(void *disk,uint16_t start);
 
-uint16_t read_data(void *disk,struct MY_FILE *p_file,void *data, uint16_t bytes);
+uint16_t read_data(void *disk,struct MY_FILE *p_file,char *data, uint16_t bytes);
 off_t fsize(const char *filename);
 int main(){
     FILE* new_disk = fopen("my_disk","w+");
@@ -121,20 +120,14 @@ int main(){
     file.fat_loc = test.FAT_location;
     file.data_size = test.size;
     file.isEOF = false;
-    uint16_t read_amount = 10;
+    uint16_t read_amount = 550;
     char *test_data = malloc((read_amount+1)*sizeof(char));
 
     while(!file.isEOF) {
-        read_data(disk, &file, test_data, read_amount);
-        test_data[read_amount] = '\0';
+        int bytes_written = read_data(disk, &file, test_data, read_amount);
+        test_data[bytes_written] = '\0';
         printf("%s", test_data);
     }
-
-
-    //void *p = disk+USER_SPACE_LOCATION;
-    //uint16_t d = 0xABCD;
-    //memcpy(p,&d,2);
-    //print_mapped_data(mapped_data);
 }
 
 off_t fsize(const char *filename) {
@@ -175,7 +168,7 @@ size_t seek_data(void *disk,struct MY_FILE *p_file, uint16_t offset, int whence)
 
 }
 
-uint16_t read_data(void *disk,struct MY_FILE *p_file,void *data, uint16_t bytes){
+uint16_t read_data(void *disk,struct MY_FILE *p_file,char *data, uint16_t bytes){
     uint16_t bytes_read = 0;
 
     uint16_t remaining_bytes = p_file->data_size-p_file->data_loc; //amount of bytes left in file
@@ -221,7 +214,7 @@ struct dir_entry create_file(void *disk,struct dir_entry parent, char name[NAME_
     my_file.fat_loc=fat_loc;
     my_file.data_size=size;
     my_file.isEOF =false;
-    write_dataV2(disk,&my_file,data,size);
+    write_data(disk, &my_file, data, size);
     return entry;
 }
 
@@ -229,25 +222,15 @@ uint16_t block_pos(void *disk,uint16_t fat_loc,uint16_t data_loc){
     uint32_t user_loc = disk_pos(disk,fat_loc,data_loc)-USER_SPACE_LOCATION;//location in the user space
     return (uint16_t) (user_loc % BLOCK_SIZE); //location in specific block
 }
-/*
-void write_data(void *disk,char *data,uint16_t size,uint16_t fat_loc){
-uint16_t block_loc = block_pos(disk,p_file->fat_loc,p_file->data_loc);
-//set bytes to write to rest of block
-uint16_t bytes_to_copy = (uint16_t) (BLOCK_SIZE - block_loc);
-//set bytes to read to = rest of block or bytes
-bytes_to_copy = bytes_to_copy <= bytes_to_write ? bytes_to_copy : bytes_to_write;
-//copy disk to data
-*/
 
-uint16_t write_dataV2(void *disk,struct MY_FILE *p_file,void *data, uint16_t bytes){
+uint16_t write_data(void *disk, struct MY_FILE *p_file, void *data, uint16_t bytes){
     uint16_t bytes_wrote = 0;
-
     while(bytes_wrote<bytes) {
         //get location of data in block
         uint16_t block_loc = block_pos(disk,p_file->fat_loc,p_file->data_loc);
         //set bytes to write to rest of block
         uint16_t bytes_to_copy = (uint16_t) (BLOCK_SIZE - block_loc);
-        //set bytes to write to = rest of block or bytes
+        //set bytes what ever is smaller the remaining bytes or the rest of the block
         bytes_to_copy = bytes_to_copy <= (bytes-bytes_wrote) ? bytes_to_copy : (bytes-bytes_wrote);
 
         //copy disk to data
@@ -257,24 +240,6 @@ uint16_t write_dataV2(void *disk,struct MY_FILE *p_file,void *data, uint16_t byt
         p_file->data_size = p_file->data_size >= p_file->data_loc ? p_file->data_size : p_file->data_loc;
     }
     return bytes_wrote;
-}
-
-
-
-
-void write_data(void *disk,char *data,uint16_t size,uint16_t fat_loc){
-    char block_of_data[BLOCK_SIZE];
-    int temp_size = size;
-    int disk_loc = USER_SPACE_LOCATION+fat_loc*BLOCK_SIZE;
-    while(temp_size>0){
-        memcpy(block_of_data,data,BLOCK_SIZE);
-        memcpy(disk+disk_loc,block_of_data,BLOCK_SIZE);
-
-        fat_loc=fat_value(disk,fat_loc);
-        disk_loc = USER_SPACE_LOCATION+fat_loc*BLOCK_SIZE;
-        data += BLOCK_SIZE;
-        temp_size -= BLOCK_SIZE;
-    }
 }
 
 void write_file_to_fat(struct dir_entry entry,void *disk){
