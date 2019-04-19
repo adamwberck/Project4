@@ -240,7 +240,6 @@ uint32_t get_disk_pos(void *disk, uint16_t fat_loc, uint16_t data_loc){
     while(data_loc>=BLOCK_SIZE){
         fat_loc = fat_value(disk,fat_loc);
         if(fat_loc==NO_LINK){
-            printf("geting an unallocated pos\n");
             fat_loc = get_free_block(disk,0x0000);
             //write to fat
             uint32_t fat_on_disk_loc = fat_location(true, old_fat_loc);//get disk location of the old fat
@@ -248,9 +247,10 @@ uint32_t get_disk_pos(void *disk, uint16_t fat_loc, uint16_t data_loc){
             fat_on_disk_loc = fat_location(true, fat_loc);//get the disk location of the new fat
             memcpy(disk+fat_on_disk_loc, &no_link, 2);//put the no link in memory
             //do the same for fat2
-            /*
-            fat_on_disk_loc = fat_location(false, disk, loc);
-            memcpy(data_loc+fat_on_disk_loc, &last_loc, 2);*/
+            fat_on_disk_loc = fat_location(false, old_fat_loc);
+            memcpy(disk+fat_on_disk_loc, &fat_loc, 2);
+            fat_on_disk_loc = fat_location(true, fat_loc);
+            memcpy(disk+fat_on_disk_loc, &no_link, 2);
         }
         old_fat_loc = fat_loc;
         data_loc-=BLOCK_SIZE;
@@ -361,35 +361,12 @@ uint16_t write_data(void *disk, struct MY_FILE *p_file, void *data, uint16_t byt
 }
 
 void write_file_to_fat(struct dir_entry entry,void *disk){
-    int blocks = (entry.size/BLOCK_SIZE);
-    //add a block if there is more disk left over or if size is zero
-    blocks+= entry.size % BLOCK_SIZE == 0 && blocks>0 ? 0 : 1;
-
-    struct my_stack stack = create_my_stack();//create stack to add empty blocks
-    put_my_stack(&stack,entry.FAT_location);//put block already allocated when adding to directory
-    //add extra blocks
-    uint16_t free = entry.FAT_location;
-    /*
-    for(int i=1;i<blocks;i++){
-        free = get_free_block(disk,free);
-        put_my_stack(&stack,free);
-    }*/
-    //set the fat using the stack
-    uint16_t last_loc = NO_LINK;//add no link
-
-    while(stack.size>0) {
-        uint16_t loc = pop_my_stack(&stack);//get last added block
-
-
-        //write to fat
-        uint32_t p_loc = fat_location(true, loc);//get address from loc
-        memcpy(disk+p_loc, &last_loc, 2);//copy last loc to this address
-        //do the same for fat2
-        p_loc = fat_location(false, loc);
-        memcpy(disk+p_loc, &last_loc, 2);
-
-        last_loc = loc;//reset fat
-    }
+    uint16_t no_link = NO_LINK;
+    uint32_t p_loc = fat_location(true, entry.FAT_location);//get address from loc
+    memcpy(disk+p_loc, &no_link, 2);//copy no link to this address
+    //do the same for fat2
+    p_loc = fat_location(false, entry.FAT_location);
+    memcpy(disk+p_loc, &no_link, 2);
 }
 
 uint16_t get_free_block(void *disk, uint16_t start) {
