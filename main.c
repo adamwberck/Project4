@@ -64,6 +64,8 @@ struct boot{
     struct dir_entry root;
 };
 
+
+void entry_to_data(struct dir_entry entry,char array[ENTRY_SIZE]);
 void delete_file(void *disk,MY_FILE *parent, char filename[NAME_LENGTH],char ext[EXT_LENGTH] );
 uint16_t write_data(void *disk, struct MY_FILE *p_file, void *data, uint16_t bytes);
 uint16_t block_pos(void *disk,uint16_t fat_loc,uint16_t data_loc);
@@ -217,13 +219,20 @@ uint32_t disk_pos(void* disk, uint16_t fat_loc,uint16_t data_loc){
     return (uint32_t) (USER_SPACE_LOCATION + fat_loc * BLOCK_SIZE + data_loc);
 }
 
-MY_FILE *create_file(void *disk,struct dir_entry parent, char name[NAME_LENGTH],char ext[EXT_LENGTH],
+MY_FILE *create_file(void *disk,MY_FILE *parent, char name[NAME_LENGTH],char ext[EXT_LENGTH],
         char *data,uint16_t size){
     time_t the_time = time(NULL);
     uint16_t fat_loc = get_free_block(disk,0x0000);
     struct dir_entry entry = create_entry(name,ext,size,the_time,the_time,fat_loc);
-    uint32_t disk_loc = get_dir_location(disk,parent);
-    write_dir_entry(entry,disk,disk_loc);
+
+    char parent_d[ENTRY_SIZE];
+    re
+
+    char array[ENTRY_SIZE];
+    entry_to_data(entry,array);
+    parent->data_loc=parent->data_size;
+    write_data(disk,parent)
+    //write_dir_entry(entry,disk,disk_loc);
     write_file_to_fat(entry,disk);
     //init the file pointer
     MY_FILE *my_file=malloc(sizeof(MY_FILE));
@@ -240,6 +249,29 @@ uint16_t block_pos(void *disk,uint16_t fat_loc,uint16_t data_loc){
     uint32_t user_loc = disk_pos(disk,fat_loc,data_loc)-USER_SPACE_LOCATION;//location in the user space
     return (uint16_t) (user_loc % BLOCK_SIZE); //location in specific block
 }
+
+void entry_to_data(struct dir_entry entry,char array[ENTRY_SIZE]){
+    /*char *null_str = "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
+    memcpy(array,null_str,ENTRY_SIZE);*/
+
+    memcpy(array,entry.name,strlen(entry.name));
+    array+=NAME_LENGTH;
+
+    memcpy(array,entry.extension,strlen(entry.extension));
+    array+=EXT_LENGTH;
+
+    memcpy(array,&entry.size, sizeof(entry.size));
+    array+=sizeof(entry.size);
+
+    memcpy(array,&entry.create_time, sizeof(entry.create_time));
+    array+=sizeof(entry.create_time);
+
+    memcpy(array,&entry.mod_time, sizeof(entry.mod_time));
+    array+=sizeof(entry.mod_time);
+
+    memcpy(array,&entry.FAT_location, sizeof(entry.FAT_location));
+}
+
 
 uint16_t write_data(void *disk, struct MY_FILE *p_file, void *data, uint16_t bytes){
     uint16_t bytes_wrote = 0;
