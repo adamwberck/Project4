@@ -5,9 +5,10 @@
 #ifndef PROJECT4_MY_STACK_H
 #define PROJECT4_MY_STACK_H
 #include <stdint.h>
+#include "main.h"
 
 struct my_stack{
-    uint16_t array[128];
+    uint16_t array[TOTAL_BLOCKS];
     int size;
 };
 
