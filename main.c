@@ -194,27 +194,19 @@ void delete_file(void *disk,MY_FILE *parent, char *filename,char *ext ){
 
     //add file info to the directory
     parent->data_loc=0;
-    char disk_name[NAME_LENGTH+1]="\0\0\0";
-    char disk_ext[EXT_LENGTH+1]="\0\0\0";
     bool n = false;
     bool e = false;
     //while not at the end of the file and you haven't found a match keep looking
     struct dir_entry entry;
     while(!parent->isEOF && (!n || !e)) {
-        read_data(disk, parent, disk_name, NAME_LENGTH);
-        read_data(disk, parent, disk_ext,EXT_LENGTH);
-        disk_name[NAME_LENGTH]='\0';
-        disk_ext[EXT_LENGTH]='\0';
-        printf("r %s%s  d %s%s\n",filename,ext,disk_name,disk_ext);
-        parent->data_loc+=ENTRY_SIZE-NAME_LENGTH-EXT_LENGTH;
-        n = strcmp(filename,disk_name)==0;
-        e = strcmp(ext,disk_ext)==0;
+        char raw_entry_data[ENTRY_SIZE];
+        read_data(disk,parent,raw_entry_data,ENTRY_SIZE);
+        data_to_entry(raw_entry_data,&entry);
+        n = memcmp(filename,entry.name,strlen(filename))==0;
+        e = memcmp(ext,entry.extension,strlen(ext))==0;
     }
-    char raw_entry_data[ENTRY_SIZE];
-    read_data(disk,parent,raw_entry_data,ENTRY_SIZE);
     parent->data_loc-=ENTRY_SIZE;
 
-    data_to_entry(raw_entry_data,&entry);
     //check if its a folder
     if(strcmp(entry.extension,"\\\\\\")==0){
         MY_FILE dir_file;
@@ -243,12 +235,14 @@ void delete_file(void *disk,MY_FILE *parent, char *filename,char *ext ){
     erase_fat(disk, entry.FAT_location);
 
     //erase dir info
+    parent->data_loc+=ENTRY_SIZE;
     uint16_t old_data_loc = parent->data_loc;
     uint16_t amount_of_data = parent->DATA_SIZE-old_data_loc;
     char rest_of_data[amount_of_data];
     read_data(disk,parent,rest_of_data,amount_of_data);
     parent->data_loc = (uint16_t) (old_data_loc - ENTRY_SIZE);
     write_data(disk,parent,rest_of_data,amount_of_data);
+    printf("fat %x\n",fat_value(disk,first_fat_loc));
 }
 
 void data_to_entry(char data[32], struct dir_entry *p_entry) {
