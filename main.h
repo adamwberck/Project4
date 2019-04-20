@@ -4,5 +4,5 @@
 
 #ifndef PROJECT4_MAIN_H
 #define PROJECT4_MAIN_H
-#define TOTAL_BLOCKS 4094
+#define TOTAL_BLOCKS 4096
 #endif //PROJECT4_MAIN_H

@@ -19,9 +19,9 @@
 #define NO_LINK 0xFFFF
 
 #define BOOT_SECTOR_SIZE 512
-#define TOTAL_SIZE 2113016
+#define TOTAL_SIZE 2114048
 #define BLOCK_SIZE 512
-#define FAT_SIZE 8188
+#define FAT_SIZE 8192
 #define MAX_SIZE 65535
 
 //entry is 32 bytes
@@ -30,8 +30,8 @@
 //root location is 0x26
 #define ROOT_LOCATION 0x26
 #define FAT1_LOCATION 0x200
-#define FAT2_LOCATION 0x21FC
-#define USER_SPACE_LOCATION 0x41F8
+#define FAT2_LOCATION 0x2200
+#define USER_SPACE_LOCATION 0x4200
 
 #define NAME_LENGTH 9
 #define EXT_LENGTH 3
