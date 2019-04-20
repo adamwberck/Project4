@@ -65,7 +65,9 @@ struct boot{
     struct dir_entry root;
 };
 
-
+MY_FILE *move_file(void *disk,MY_FILE *new_folder,
+        MY_FILE *parent,MY_FILE *file,char name[NAME_LENGTH],char ext[EXT_LENGTH]);
+MY_FILE *copy_file(void *disk,MY_FILE *new_folder,MY_FILE *file,char name[NAME_LENGTH],char ext[EXT_LENGTH]);
 bool seek_to_dir_entry(void *disk,struct dir_entry *entry,MY_FILE *parent, const char *filename, const char *ext);
 void entry_to_myfile(const MY_FILE *parent, struct dir_entry *entry, MY_FILE *dir_file);
 MY_FILE *user_create_file(void *disk,MY_FILE *parent,char *name,char *ext,char *data,uint16_t size);
@@ -136,7 +138,7 @@ int main(){
     root_pointer.DATA_SIZE=my_boot.root.size;
 
     //srandom((unsigned int) time(NULL));
-    MY_FILE *file;
+    MY_FILE *file[35];
     for(int i=0;i<35;i++) {
         uint16_t start = (uint16_t) (random() % (strlen(my_test_file_data)-100));
         uint16_t bytes = (uint16_t) (random() % (strlen(my_test_file_data)-start));
@@ -147,27 +149,45 @@ int main(){
         strcat(name,str);
         strcat(name,"\0");
         printf("%s %d \n",name,bytes);
-        file = create_file(disk, &root_pointer, name, "txt", my_test_file_data+start, bytes);
+        file[i] = create_file(disk, &root_pointer, name, "txt", my_test_file_data+start, bytes);
     }
     uint16_t read_amount = 550;
     char *test_data = malloc((read_amount+1)*sizeof(char));
 
     //read file
+    /*
     while(!file->isEOF) {
         int bytes_written = read_data(disk, file, test_data, read_amount);
         test_data[bytes_written] = '\0';
         printf("%s", test_data);
-    }
+    }*/
 
 
     MY_FILE root_file; root_file.isEOF=false; root_file.DATA_SIZE=my_boot.root.size;
     root_file.FAT_LOC=my_boot.root.FAT_location; root_file.data_loc=0;
 
-    delete_file(disk,&root_file,"test30","txt");
+    //delete_file(disk,&root_file,"test30","txt");
     MY_FILE *folder1 = make_dir(disk,&root_file,"folder1");
     user_create_file(disk,folder1,"ftest1","txt","Hello World! this is a test string in an interior folder",56);
-    delete_file(disk,&root_file,"folder1","\\\\\\");
-    create_file(disk, &root_pointer, "new file", "txt", my_test_file_data, 1050);
+    //delete_file(disk,&root_file,"folder1","\\\\\\");
+    //create_file(disk, &root_pointer, "new file", "txt", my_test_file_data, 1050);
+    move_file(disk,folder1,&root_pointer,file[10],"test9","txt");
+    MY_FILE *folder1_2 = make_dir(disk,folder1,"fol1_2");
+    user_create_file(disk,folder1_2,"ftest3","txt","file in folder in a folder",26);
+    copy_file(disk,folder1_2,file[30],"test29","txt");
+}
+
+MY_FILE *move_file(void *disk,MY_FILE *new_folder,
+        MY_FILE *parent,MY_FILE *file,char name[NAME_LENGTH],char ext[EXT_LENGTH]){
+    delete_file(disk,parent,name,ext);
+    copy_file(disk,new_folder,file,name,ext);
+}
+
+
+MY_FILE *copy_file(void *disk,MY_FILE *new_folder,MY_FILE *file,char name[NAME_LENGTH],char ext[EXT_LENGTH]){
+    char data[file->DATA_SIZE];
+    read_data(disk,file,data,file->DATA_SIZE);
+    return create_file(disk,new_folder,name,ext,data,file->DATA_SIZE);
 }
 
 MY_FILE *make_dir(void *disk,MY_FILE *parent,char *name){
