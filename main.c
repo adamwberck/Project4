@@ -86,7 +86,7 @@ struct dir_entry create_entry(char name[9],char extension[3],uint16_t size, time
 
 uint16_t get_free_block(void *disk,uint16_t start);
 
-uint16_t read_data(void *disk,struct MY_FILE *p_file,char *data, uint16_t bytes);
+uint16_t read_data(void *disk,struct MY_FILE *p_file,void *data, uint16_t bytes);
 off_t fsize(const char *filename);
 
 int main(){
@@ -129,7 +129,7 @@ int main(){
     root_pointer.data_loc=0;
     root_pointer.DATA_SIZE=my_boot.root.size;
 
-    srandom((unsigned int) time(NULL));
+    //srandom((unsigned int) time(NULL));
     for(int i=0;i<100;i++) {
         uint16_t start = (uint16_t) (random() % (strlen(my_test_file_data)-100));
         uint16_t bytes = (uint16_t) (random() % (strlen(my_test_file_data)-start));
@@ -181,13 +181,13 @@ void delete_file(void *disk,MY_FILE *parent, char *filename,char *ext ){
         }
         printf("check fat %d real fat %d\n",check_fat,parent->FAT_LOC);
     }
+
+    //BAD if goes across a block
     uint16_t d_size;
     memcpy(&d_size,disk+dir_disk_loc+NAME_LENGTH+EXT_LENGTH, sizeof(uint16_t));
     parent->DATA_SIZE=d_size;
     d_size-=ENTRY_SIZE;
     memcpy(disk+dir_disk_loc+NAME_LENGTH+EXT_LENGTH,&d_size,sizeof(uint16_t));
-
-
 
     //add file info to the directory
     parent->data_loc=0;
@@ -205,12 +205,37 @@ void delete_file(void *disk,MY_FILE *parent, char *filename,char *ext ){
         n = strcmp(filename,disk_name)==0;
         e = strcmp(ext,disk_ext)==0;
     }
-    /*
-    uint16_t amount_of_data=parent->DATA_SIZE-parent->data_loc;
+
+    //erase fat
+    uint16_t fat_loc;
+    parent->data_loc -= sizeof(uint16_t);
+    read_data(disk,parent,&fat_loc, sizeof(uint16_t));
+    uint16_t first_fat_loc = fat_loc;
+    printf("fat %x\n",first_fat_loc);
+    struct my_stack stack = create_my_stack();
+    put_my_stack(&stack,fat_loc);
+    while(fat_loc!=NO_LINK){
+        fat_loc = fat_value(disk,fat_loc);
+        put_my_stack(&stack,fat_loc);
+    }
+    //erase dir info
+    uint16_t free_block = FREE_BLOCK;
+    while(stack.size>0){
+        //erase the first fat
+        uint32_t f_pos = fat_location(true,pop_my_stack(&stack));
+        memcpy(disk+f_pos,&free_block, sizeof(uint16_t));
+        //erase the second fat
+        f_pos = fat_location(false,pop_my_stack(&stack));
+        memcpy(disk+f_pos,&free_block, sizeof(uint16_t));
+    }
+    printf("fat %x\n",fat_value(disk,first_fat_loc));
+    uint16_t old_data_loc = parent->data_loc;
+    uint16_t amount_of_data = parent->DATA_SIZE-old_data_loc;
     char rest_of_data[amount_of_data];
-    parent->data_loc-=
-    write_data(disk,parent,rest_of_data,parent->DATA_SIZE-parent->data_loc);
-    */
+    read_data(disk,parent,rest_of_data,amount_of_data);
+    parent->data_loc = (uint16_t) (old_data_loc - ENTRY_SIZE);
+    write_data(disk,parent,rest_of_data,amount_of_data);
+
 }
 
 
@@ -243,7 +268,7 @@ uint16_t seek_data(void *disk,struct MY_FILE *p_file, uint16_t offset, int whenc
 
 }
 
-uint16_t read_data(void *disk,struct MY_FILE *p_file,char *data, uint16_t bytes){
+uint16_t read_data(void *disk,struct MY_FILE *p_file,void *data, uint16_t bytes){
     uint16_t bytes_read = 0;
 
     uint16_t remaining_bytes = p_file->DATA_SIZE-p_file->data_loc; //amount of bytes left in file
