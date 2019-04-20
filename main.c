@@ -179,8 +179,9 @@ int main(){
 
 MY_FILE *move_file(void *disk,MY_FILE *new_folder,
         MY_FILE *parent,MY_FILE *file,char name[NAME_LENGTH],char ext[EXT_LENGTH]){
+    MY_FILE *new_file = copy_file(disk,new_folder,file,name,ext);
     delete_file(disk,parent,name,ext);
-    copy_file(disk,new_folder,file,name,ext);
+    return new_file;
 }
 
 
