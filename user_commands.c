@@ -86,3 +86,13 @@ MY_FILE *user_create_file(MY_FILE *parent,char *name,char *ext,char *data,uint16
     free(name);free(ext);
     return NULL;
 }
+
+void display_file_data(MY_FILE *file){
+    file->data_loc=0;
+    file->isEOF=false;
+    while(!file->isEOF){
+        char data[file->DATA_SIZE];
+        read_data(file,data,file->DATA_SIZE);
+        printf("%s",data);
+    }
+}

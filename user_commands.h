@@ -11,6 +11,7 @@ MY_FILE *copy_dir(MY_FILE *new_folder,MY_FILE *duplicating_file,char name[NAME_L
 MY_FILE *user_copy_file(MY_FILE *new_folder,MY_FILE *file,char name[NAME_LENGTH],char ext[EXT_LENGTH]);
 MY_FILE *make_dir(MY_FILE *parent, char *name);
 MY_FILE *user_create_file(MY_FILE *parent,char *name,char *ext,char *data,uint16_t size);
+void display_file_data(MY_FILE *file);
 char *uniform_the_ext(char *ext);
 char *uniform_the_name(char *name);
 #endif //PROJECT4_USER_COMMANDS_H

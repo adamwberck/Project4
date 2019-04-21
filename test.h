@@ -6,5 +6,8 @@
 #define PROJECT4_FIRST_TEST_H
 #include "disk.h"
 #include "user_commands.h"
-void first_test(struct boot my_boot);
+#include "my_dir_stack.h"
+void first_test();
+void second_test();
+
 #endif //PROJECT4_FIRST_TEST_H

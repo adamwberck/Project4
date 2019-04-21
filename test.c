@@ -23,7 +23,7 @@ void first_test(struct boot my_boot){
     root_folder.data_loc=0;
     root_folder.DATA_SIZE=my_boot.root.size;
 
-    //srandom((unsigned int) time(NULL));
+    srandom((unsigned int) time(NULL));
     MY_FILE *folders[6];
     folders[0] = make_dir(&root_folder, "folder0\0\0");
     folders[1] = make_dir(&root_folder, "folder1\0\0");
@@ -40,9 +40,9 @@ void first_test(struct boot my_boot){
         char name[9]="\0\0\0\0\0\0\0\0\0";
         memcpy(name,"test",4);
         char str[3];
-        sprintf(str,"%d",i);
+        sprintf(str,"%.2d",i);
         strcat(name,str);
-        printf("%s %d \n",name,bytes);
+        //printf("%s %d \n",name,bytes);
         if(folder!=6) {
             file[i] = user_create_file(folders[folder], name, "txt", my_test_file_data + start, bytes);
         }
@@ -53,5 +53,14 @@ void first_test(struct boot my_boot){
 }
 
 void second_test(){
-
+    make_dir(current_dir,"folder1");
+    change_dir("folder1");
+    user_create_file(current_dir,"test0","txt","This is 0 test of file creation",31);
+    user_create_file(current_dir,"test1","txt","This is 1 test of file creation",31);
+    make_dir(current_dir,"sub1");
+    change_dir("sub1");
+    user_create_file(current_dir,"test2","txt","This is 2 test of file creation",31);
+    MY_FILE *test3 = user_create_file(current_dir,"test3","txt","This is 3 test of file creation",31);
+    display_everything();
+    display_file_data(test3);
 }

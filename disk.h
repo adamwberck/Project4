@@ -14,6 +14,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <assert.h>
+#include "my_dir_stack.h"
 
 
 #define FREE_BLOCK   0x0000
@@ -40,15 +41,6 @@
 
 
 
-struct MY_FILE {
-    uint16_t data_loc;
-    uint16_t DATA_SIZE;
-    uint16_t FAT_LOC;
-    uint16_t pFAT_LOC;
-    bool isEOF;
-}typedef MY_FILE;
-
-
 struct dir_entry{
     char name[NAME_LENGTH];
     char extension[EXT_LENGTH];
@@ -69,6 +61,7 @@ struct boot{
     struct dir_entry root;
 };
 
+void change_dir(char name[NAME_LENGTH]);
 void display_everything();
 void display_file(struct dir_entry entry,MY_FILE *file,int depth);
 void root_to_myfile();
@@ -99,5 +92,8 @@ off_t fsize(const char *filename);
 void erase_fat( uint16_t fat_loc);
 void data_to_entry(char data[32], struct dir_entry *new_entry);
 
+void *disk;
+MY_FILE *current_dir;
+struct my_dir_stack dir_stack;
 
 #endif //PROJECT4_MAIN_H

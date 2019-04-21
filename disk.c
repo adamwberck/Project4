@@ -6,9 +6,7 @@
 #include "my_dir_stack.h"
 #include "test.h"
 
-void *disk;
-MY_FILE *current_dir;
-struct my_dir_stack dir_stack;
+
 
 const char *FOLDER_EXT = "\\\\\\";
 int main(){
@@ -19,19 +17,14 @@ int main(){
     //using mmap to open my_disk
     int int_disk = open("my_disk",O_RDWR,0);
     disk = mmap(NULL,TOTAL_SIZE,PROT_READ|PROT_WRITE,MAP_SHARED,int_disk,0);
-    write_dir_entry(my_boot.root,ROOT_LOCATION);
-    write_file_to_fat(my_boot.root,disk);
+    write_dir_entry(my_boot.root,ROOT_LOCATION);//write the root to boot;
+    write_file_to_fat(my_boot.root,disk);//write the fat of the root
 
+    //set current dir to root folder
     MY_FILE *root_folder = malloc(sizeof(MY_FILE));
     root_to_myfile(my_boot, root_folder);
     current_dir = root_folder;
-    first_test(my_boot);
-
-    char raw_root[ENTRY_SIZE];
-    memcpy(raw_root,disk+ROOT_LOCATION,ENTRY_SIZE);
-    data_to_entry(raw_root,&my_boot.root);
-    root_folder->DATA_SIZE=my_boot.root.size;
-    display_everything();
+    second_test();
 }
 
 void display_everything(){
@@ -69,7 +62,12 @@ void display_entry(struct dir_entry entry){
 void display_file(struct dir_entry entry,MY_FILE *file,int depth){
     //if its folder display its contents
     for(int i=0;i<depth;i++) {
-        printf("|");
+        if(depth==1 || i+1<depth) {
+            printf("|");
+        } else{
+            printf("-");
+        }
+
     }
     display_entry(entry);
     if(memcmp(entry.extension,"\\\\\\",EXT_LENGTH)==0){
