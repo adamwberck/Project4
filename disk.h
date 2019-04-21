@@ -69,31 +69,31 @@ struct boot{
 
 void close_file(MY_FILE *file);
 void create_disk(struct boot my_boot);
-MY_FILE *open_file(void *disk,MY_FILE *parent,char name[NAME_LENGTH],char ext[EXT_LENGTH]);
-MY_FILE *move_file(void *disk,MY_FILE *new_folder, MY_FILE *parent,MY_FILE *file,char name[NAME_LENGTH],
+MY_FILE *open_file(MY_FILE *parent,char name[NAME_LENGTH],char ext[EXT_LENGTH]);
+MY_FILE *move_file(MY_FILE *new_folder, MY_FILE *parent,MY_FILE *file,char name[NAME_LENGTH],
         char ext[EXT_LENGTH]);
-MY_FILE *copy_file(void *disk,MY_FILE *new_folder,MY_FILE *file,char name[NAME_LENGTH],char ext[EXT_LENGTH]);
-bool seek_to_dir_entry(void *disk,struct dir_entry *entry,MY_FILE *parent, const char *filename, const char *ext);
+MY_FILE *copy_file(MY_FILE *new_folder,MY_FILE *file,char name[NAME_LENGTH],char ext[EXT_LENGTH]);
+bool seek_to_dir_entry(struct dir_entry *entry,MY_FILE *parent, const char *filename, const char *ext);
 void entry_to_myfile(const MY_FILE *parent, struct dir_entry *entry, MY_FILE *dir_file);
-MY_FILE *user_create_file(void *disk,MY_FILE *parent,char *name,char *ext,char *data,uint16_t size);
+MY_FILE *user_create_file(MY_FILE *parent,char *name,char *ext,char *data,uint16_t size);
 void entry_to_data(struct dir_entry entry,char array[ENTRY_SIZE]);
-void delete_file(void *disk,MY_FILE *parent, char filename[NAME_LENGTH],char ext[EXT_LENGTH] );
-uint16_t write_data(void *disk, struct MY_FILE *p_file, void *data, uint16_t bytes);
-uint32_t get_disk_pos(void *disk, uint16_t fat_loc, uint16_t data_loc);
-MY_FILE *create_file(void *disk,MY_FILE *parent, char name[NAME_LENGTH],char ext[EXT_LENGTH], char *data,uint16_t size);
+void delete_file(MY_FILE *parent, char filename[NAME_LENGTH],char ext[EXT_LENGTH] );
+uint16_t write_data( struct MY_FILE *p_file, void *data, uint16_t bytes);
+uint32_t get_disk_pos( uint16_t fat_loc, uint16_t data_loc);
+MY_FILE *create_file(MY_FILE *parent, char name[NAME_LENGTH],char ext[EXT_LENGTH], char *data,uint16_t size);
 void write_file_to_fat(struct dir_entry entry,void *disk);
-void write_dir_entry(struct dir_entry entry,void *disk,uint32_t location);
-uint16_t fat_value(void* disk, uint16_t block);
+void write_dir_entry(struct dir_entry entry,uint32_t location);
+uint16_t fat_value( uint16_t block);
 uint32_t fat_location(bool isFAT1, uint16_t block);
 struct dir_entry create_root();
 struct boot create_boot();
 struct dir_entry create_entry(char name[9],char extension[3],uint16_t size, time_t create_time,
         time_t mod_time,uint16_t FAT_location);
-MY_FILE *make_dir(void *disk,MY_FILE *parent,char *name);
-uint16_t get_free_block(void *disk,uint16_t start);
-uint16_t read_data(void *disk,struct MY_FILE *p_file,void *data, uint16_t bytes);
+MY_FILE *make_dir(MY_FILE *parent,char *name);
+uint16_t get_free_block(uint16_t start);
+uint16_t read_data(struct MY_FILE *p_file,void *data, uint16_t bytes);
 off_t fsize(const char *filename);
-void erase_fat(void *disk, uint16_t fat_loc);
+void erase_fat( uint16_t fat_loc);
 void data_to_entry(char data[32], struct dir_entry *p_entry);
 
 

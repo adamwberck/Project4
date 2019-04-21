@@ -6,7 +6,7 @@
 #include <malloc.h>
 #include "first_test.h"
 
-void first_test(void * disk,struct boot my_boot){
+void first_test(struct boot my_boot){
     //Load Test File.txt to write to disk
     FILE *test_file = fopen("Test File2.txt","r");
     int test_file_size = (int) fsize("Test File2.txt");
@@ -23,7 +23,7 @@ void first_test(void * disk,struct boot my_boot){
     root_pointer.data_loc=0;
     root_pointer.DATA_SIZE=my_boot.root.size;
 
-    //srandom((unsigned int) time(NULL));
+    srandom((unsigned int) time(NULL));
     MY_FILE *file[35];
     for(int i=0;i<35;i++) {
         uint16_t start = (uint16_t) (random() % (strlen(my_test_file_data)-100));
@@ -35,27 +35,27 @@ void first_test(void * disk,struct boot my_boot){
         strcat(name,str);
         strcat(name,"\0");
         printf("%s %d \n",name,bytes);
-        file[i] = create_file(disk, &root_pointer, name, "txt", my_test_file_data+start, bytes);
+        file[i] = create_file(&root_pointer, name, "txt", my_test_file_data+start, bytes);
     }
 
 
     //delete_file(disk,&root_file,"test30","txt");
-    MY_FILE *folder1 = make_dir(disk,&root_pointer,"folder1");
-    user_create_file(disk,folder1,"ftest1","txt","Hello World! this is a test string in an interior folder",56);
+    MY_FILE *folder1 = make_dir(&root_pointer,"folder1");
+    user_create_file(folder1,"ftest1","txt","Hello World! this is a test string in an interior folder",56);
     //delete_file(disk,&root_file,"folder1","\\\\\\");
     //create_file(disk, &root_pointer, "new file", "txt", my_test_file_data, 1050);
-    move_file(disk,folder1,&root_pointer,file[10],"test9","txt");
-    MY_FILE *folder1_2 = make_dir(disk,folder1,"fol1_2");
-    user_create_file(disk,folder1_2,"ftest3","txt","file in folder in a folder",26);
-    copy_file(disk,folder1_2,file[30],"test29","txt");
-    open_file(disk,&root_pointer,"test0","txt");
+    //move_file(disk,folder1,&root_pointer,file[10],"test9","txt");
+    MY_FILE *folder1_2 = make_dir(folder1,"fol1_2");
+    user_create_file(folder1_2,"ftest3","txt","file in folder in a folder",26);
+    copy_file(folder1_2,file[30],"test29","txt");
+    open_file(&root_pointer,"test0","txt");
 
     //read file
     uint16_t read_amount = 550;
     char *test_data = malloc((read_amount+1)*sizeof(char));
-    MY_FILE *o_file = open_file(disk,folder1_2,"ftest3","txt");
+    MY_FILE *o_file = open_file(folder1_2,"ftest3","txt");
     while(!o_file->isEOF) {
-        int bytes_written = read_data(disk, o_file, test_data, read_amount);
+        int bytes_written = read_data( o_file, test_data, read_amount);
         test_data[bytes_written] = '\0';
         printf("%s", test_data);
     }
