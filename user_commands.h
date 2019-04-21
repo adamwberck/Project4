@@ -9,7 +9,8 @@ MY_FILE *move_directory(MY_FILE *new_folder, MY_FILE *parent,MY_FILE *file,char 
 MY_FILE *user_move_file(MY_FILE *new_folder, MY_FILE *parent,MY_FILE *file,char name[NAME_LENGTH],char ext[EXT_LENGTH]);
 MY_FILE *copy_dir(MY_FILE *new_folder,MY_FILE *duplicating_file,char name[NAME_LENGTH]);
 MY_FILE *user_copy_file(MY_FILE *new_folder,MY_FILE *file,char name[NAME_LENGTH],char ext[EXT_LENGTH]);
-MY_FILE *make_dir(MY_FILE *parent,char *name);
+MY_FILE *make_dir(MY_FILE *parent, char *name);
 MY_FILE *user_create_file(MY_FILE *parent,char *name,char *ext,char *data,uint16_t size);
-
+char *uniform_the_ext(char *ext);
+char *uniform_the_name(char *name);
 #endif //PROJECT4_USER_COMMANDS_H

@@ -31,19 +31,39 @@ int main(){
     memcpy(raw_root,disk+ROOT_LOCATION,ENTRY_SIZE);
     data_to_entry(raw_root,&my_boot.root);
     root_folder->DATA_SIZE=my_boot.root.size;
-    display_file(my_boot.root,root_folder,1);
+    display_everything();
 }
 
 void display_everything(){
+    MY_FILE root_folder;
+    root_folder.FAT_LOC=0;
+    root_folder.isEOF=false;
+    root_folder.data_loc=0;
 
+    char raw_root[ENTRY_SIZE];
+    struct dir_entry root_entry;
+    memcpy(raw_root,disk+ROOT_LOCATION,ENTRY_SIZE);
+    data_to_entry(raw_root,&root_entry);
+    root_folder.DATA_SIZE=root_entry.size;
+    display_file(root_entry,&root_folder,1);
 }
 
 void display_entry(struct dir_entry entry){
+    //Have to make sure there is a null terminator at the end of the entry strings
+    char *new_name = malloc(sizeof(char)*(NAME_LENGTH+1));
+    size_t len = (size_t) fmin(strlen(entry.name), NAME_LENGTH);
+    memcpy(new_name,entry.name,len);
+    new_name[len]=0;
+    char *new_ext = malloc(sizeof(char)*(EXT_LENGTH+1));
+    len = (size_t) fmin(strlen(entry.extension), EXT_LENGTH);
+    memcpy(new_ext,entry.extension,len);
+    new_ext[len]=0;
+
     if(memcmp(entry.extension,"\\\\\\",EXT_LENGTH)==0){
-        printf("%.9s\n",entry.name);
+        printf("%.9s\n",new_name);
         return;
     }
-    printf("%.9s.%.3s %.5d\n",entry.name,entry.extension,entry.size);
+    printf("%s.%s %.5d\n",new_name,new_ext,entry.size);
 }
 
 void display_file(struct dir_entry entry,MY_FILE *file,int depth){
@@ -520,8 +540,8 @@ struct dir_entry create_root(){
 struct dir_entry create_entry(char name[NAME_LENGTH],char extension[EXT_LENGTH],uint16_t size,
         time_t create_time, time_t mod_time,uint16_t FAT_location){
     struct dir_entry entry;
-    strcpy(entry.name,name);
-    strcpy(entry.extension,extension);
+    memcpy(entry.name,name,NAME_LENGTH);
+    memcpy(entry.extension,extension,EXT_LENGTH);
     entry.size = size;
     entry.create_time = create_time;
     entry.mod_time = mod_time;

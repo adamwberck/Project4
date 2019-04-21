@@ -80,7 +80,6 @@ MY_FILE *move_file(MY_FILE *new_folder, MY_FILE *parent,MY_FILE *file,char name[
 MY_FILE *copy_file(MY_FILE *new_folder,MY_FILE *file,char name[NAME_LENGTH],char ext[EXT_LENGTH]);
 bool seek_to_dir_entry(struct dir_entry *entry,MY_FILE *parent, const char *filename, const char *ext);
 void entry_to_myfile(const MY_FILE *parent, struct dir_entry *entry, MY_FILE *dir_file);
-MY_FILE *user_create_file(MY_FILE *parent,char *name,char *ext,char *data,uint16_t size);
 void entry_to_data(struct dir_entry entry,char array[ENTRY_SIZE]);
 void delete_file(MY_FILE *parent, char filename[NAME_LENGTH],char ext[EXT_LENGTH] );
 uint16_t write_data( struct MY_FILE *p_file, void *data, uint16_t bytes);
@@ -94,7 +93,6 @@ struct dir_entry create_root();
 struct boot create_boot();
 struct dir_entry create_entry(char name[9],char extension[3],uint16_t size, time_t create_time,
         time_t mod_time,uint16_t FAT_location);
-MY_FILE *make_dir(MY_FILE *parent,char *name);
 uint16_t get_free_block(uint16_t start);
 uint16_t read_data(struct MY_FILE *p_file,void *data, uint16_t bytes);
 off_t fsize(const char *filename);

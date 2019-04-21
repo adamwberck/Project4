@@ -25,25 +25,30 @@ void first_test(struct boot my_boot){
 
     //srandom((unsigned int) time(NULL));
     MY_FILE *folders[6];
-    folders[0] = make_dir(&root_folder,"folder0\0\0");
-    folders[1] = make_dir(&root_folder,"folder1\0\0");
-    folders[2] = make_dir(&root_folder,"folder2\0\0");
-    folders[3] = make_dir(&root_folder,"folder3\0\0");
-    folders[4] = make_dir(&root_folder,"folder4\0\0");
-    folders[5] = make_dir(&root_folder,"folder5\0\0");
+    folders[0] = make_dir(&root_folder, "folder0\0\0");
+    folders[1] = make_dir(&root_folder, "folder1\0\0");
+    folders[2] = make_dir(&root_folder, "folder2\0\0");
+    folders[3] = make_dir(&root_folder, "folder3\0\0");
+    folders[4] = make_dir(&root_folder, "folder4\0\0");
+    folders[5] = make_dir(&root_folder, "folder5\0\0");
     MY_FILE *file[35];
 
     for(int i=0;i<30;i++) {
         uint16_t start = (uint16_t) (random() % (strlen(my_test_file_data)-100));
         uint16_t bytes = (uint16_t) (random() % (strlen(my_test_file_data)-start));
-        uint16_t folder = (uint16_t) (random() % 6);
+        uint16_t folder = (uint16_t) (random() % 7);
         char name[9]="\0\0\0\0\0\0\0\0\0";
         memcpy(name,"test",4);
         char str[3];
         sprintf(str,"%d",i);
         strcat(name,str);
         printf("%s %d \n",name,bytes);
-        file[i] = create_file(folders[folder], name, "txt", my_test_file_data+start, bytes);
+        if(folder!=6) {
+            file[i] = user_create_file(folders[folder], name, "txt", my_test_file_data + start, bytes);
+        }
+        else {
+            file[i] = user_create_file(&root_folder, name, "c", my_test_file_data + start, bytes);
+        }
     }
 }
 
