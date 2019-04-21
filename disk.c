@@ -177,7 +177,7 @@ MY_FILE *copy_file(MY_FILE *new_folder,MY_FILE *file,char name[NAME_LENGTH],char
 
 void delete_file(MY_FILE *parent, char *filename, char *ext ){
     //add file info to the directory
-    //parent->data_loc=0;
+    parent->data_loc=0;
     //get dir entry
     struct dir_entry entry;
     if(!seek_to_dir_entry(&entry,parent,filename,ext)){
