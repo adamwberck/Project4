@@ -1,112 +1,28 @@
 //
 // Created by Adam Berck on 2019-04-17.
 //
-
-#include <stdio.h>
-#include <memory.h>
-#include <time.h>
-#include "main.h"
-#include <sys/mman.h>
-#include <sys/fcntl.h>
-#include <unistd.h>
-#include <stdbool.h>
-#include <stdlib.h>
-#include <math.h>
-#include <assert.h>
+#include "disk.h"
 #include "my_stack.h"
-
-#define FREE_BLOCK   0x0000
-#define NO_LINK 0xFFFF
-
-#define BOOT_SECTOR_SIZE 512
-#define TOTAL_SIZE 2114048
-#define BLOCK_SIZE 512
-#define FAT_SIZE 8192
-#define MAX_SIZE 65535
-
-//entry is 32 bytes
-#define ENTRY_SIZE 32
-
-//root location is 0x26
-#define ROOT_LOCATION 0x26
-#define FAT1_LOCATION 0x200
-#define FAT2_LOCATION 0x2200
-#define USER_SPACE_LOCATION 0x4200
-
-#define NAME_LENGTH 9
-#define EXT_LENGTH 3
-
-struct MY_FILE {
-    uint16_t data_loc;
-    uint16_t DATA_SIZE;
-    uint16_t FAT_LOC;
-    uint16_t pFAT_LOC;
-    bool isEOF;
-}typedef MY_FILE;
-
-
-struct dir_entry{
-    char name[NAME_LENGTH];
-    char extension[EXT_LENGTH];
-    uint16_t size;
-    time_t create_time;
-    time_t mod_time;
-    uint16_t FAT_location;
-};
-
-struct boot{
-    char valid_check[24];
-    uint16_t boot_sector_size; //512
-    uint32_t total_size; //2096128
-    uint16_t block_size; //512
-    uint16_t total_blocks; //4094
-    uint16_t FAT_size; //8188
-    uint16_t max_size; //65535
-    struct dir_entry root;
-};
-
-
-MY_FILE *open_file(void *disk,MY_FILE *parent,char name[NAME_LENGTH],char ext[EXT_LENGTH]);
-MY_FILE *move_file(void *disk,MY_FILE *new_folder,
-        MY_FILE *parent,MY_FILE *file,char name[NAME_LENGTH],char ext[EXT_LENGTH]);
-MY_FILE *copy_file(void *disk,MY_FILE *new_folder,MY_FILE *file,char name[NAME_LENGTH],char ext[EXT_LENGTH]);
-bool seek_to_dir_entry(void *disk,struct dir_entry *entry,MY_FILE *parent, const char *filename, const char *ext);
-void entry_to_myfile(const MY_FILE *parent, struct dir_entry *entry, MY_FILE *dir_file);
-MY_FILE *user_create_file(void *disk,MY_FILE *parent,char *name,char *ext,char *data,uint16_t size);
-void entry_to_data(struct dir_entry entry,char array[ENTRY_SIZE]);
-void delete_file(void *disk,MY_FILE *parent, char filename[NAME_LENGTH],char ext[EXT_LENGTH] );
-uint16_t write_data(void *disk, struct MY_FILE *p_file, void *data, uint16_t bytes);
-uint16_t block_pos(void *disk,uint16_t fat_loc,uint16_t data_loc);
-uint32_t get_disk_pos(void *disk, uint16_t fat_loc, uint16_t data_loc);
-MY_FILE *create_file(void *disk,MY_FILE *parent, char name[NAME_LENGTH],char ext[EXT_LENGTH],
-                     char *data,uint16_t size);
-void write_file_to_fat(struct dir_entry entry,void *disk);
-void write_dir_entry(struct dir_entry entry,void *disk,uint32_t location);
-uint16_t fat_value(void* disk, uint16_t block);
-uint32_t fat_location(bool isFAT1, uint16_t block);
-struct dir_entry create_root();
-struct boot create_boot();
-struct dir_entry create_entry(char name[9],char extension[3],uint16_t size, time_t create_time,
-        time_t mod_time,uint16_t FAT_location);
-
-MY_FILE *make_dir(void *disk,MY_FILE *parent,char *name);
-uint16_t get_free_block(void *disk,uint16_t start);
-
-uint16_t read_data(void *disk,struct MY_FILE *p_file,void *data, uint16_t bytes);
-off_t fsize(const char *filename);
-
-void erase_fat(void *disk, uint16_t fat_loc);
-
-void data_to_entry(char data[32], struct dir_entry *p_entry);
+#include "first_test.h"
 
 int main(){
+    struct boot my_boot = create_boot();
+    create_disk(my_boot);
+    //COPY my_test_file_data using mmap();
+    int int_disk = open("my_disk",O_RDWR,0);
+    void *disk = mmap(NULL,TOTAL_SIZE,PROT_READ|PROT_WRITE,MAP_SHARED,int_disk,0);
+    write_dir_entry(my_boot.root,disk,ROOT_LOCATION);
+    write_file_to_fat(my_boot.root,disk);
+    first_test(disk,my_boot);
+}
+
+void create_disk(struct boot my_boot){
     FILE *new_disk = fopen("my_disk","w+");
     uint16_t empty = FREE_BLOCK;
     for(int i=0;i<TOTAL_SIZE;i++) {
         fwrite(&empty, sizeof(uint16_t), 1, new_disk);
     }
     fseek(new_disk,0,SEEK_SET);
-    struct boot my_boot = create_boot();
     fwrite(my_boot.valid_check,1, sizeof(my_boot.valid_check),new_disk);
     fwrite(&my_boot.boot_sector_size,2, 1,new_disk);
     fwrite(&my_boot.total_size,4, 1,new_disk);
@@ -114,69 +30,9 @@ int main(){
     fwrite(&my_boot.total_blocks,2, 1,new_disk);
     fwrite(&my_boot.FAT_size,2, 1,new_disk);
     fwrite(&my_boot.max_size,2, 1,new_disk);
-    //write_dir_entry(my_boot.root,new_disk);
     fclose(new_disk);
-
-    //COPY my_test_file_data using mmap();
-    int i_disk = open("my_disk",O_RDWR,0);
-    void *disk = mmap(NULL,TOTAL_SIZE,PROT_READ|PROT_WRITE,MAP_SHARED,i_disk,0);
-    write_dir_entry(my_boot.root,disk,ROOT_LOCATION);
-    write_file_to_fat(my_boot.root,disk);
-
-    //Load Test File.txt to write to disk
-    FILE *test_file = fopen("Test File2.txt","r");
-    int test_file_size = (int) fsize("Test File2.txt");
-    printf("size %d\n",  test_file_size);
-    char *my_test_file_data = malloc(sizeof(char)*test_file_size);
-    fprintf(test_file,"%s",my_test_file_data);
-    fread(my_test_file_data, sizeof(char), (size_t) test_file_size, test_file);
-    fclose(test_file);
-
-    //create test file write to logic dir, write to fat, and write to disk
-    MY_FILE root_pointer;
-    root_pointer.FAT_LOC=my_boot.root.FAT_location;
-    root_pointer.isEOF=false;
-    root_pointer.data_loc=0;
-    root_pointer.DATA_SIZE=my_boot.root.size;
-
-    //srandom((unsigned int) time(NULL));
-    MY_FILE *file[35];
-    for(int i=0;i<35;i++) {
-        uint16_t start = (uint16_t) (random() % (strlen(my_test_file_data)-100));
-        uint16_t bytes = (uint16_t) (random() % (strlen(my_test_file_data)-start));
-        char name[7];
-        strcpy(name,"test");
-        char str[3];
-        sprintf(str,"%d",i);
-        strcat(name,str);
-        strcat(name,"\0");
-        printf("%s %d \n",name,bytes);
-        file[i] = create_file(disk, &root_pointer, name, "txt", my_test_file_data+start, bytes);
-    }
-
-
-    //delete_file(disk,&root_file,"test30","txt");
-    MY_FILE *folder1 = make_dir(disk,&root_pointer,"folder1");
-    user_create_file(disk,folder1,"ftest1","txt","Hello World! this is a test string in an interior folder",56);
-    //delete_file(disk,&root_file,"folder1","\\\\\\");
-    //create_file(disk, &root_pointer, "new file", "txt", my_test_file_data, 1050);
-    move_file(disk,folder1,&root_pointer,file[10],"test9","txt");
-    MY_FILE *folder1_2 = make_dir(disk,folder1,"fol1_2");
-    user_create_file(disk,folder1_2,"ftest3","txt","file in folder in a folder",26);
-    copy_file(disk,folder1_2,file[30],"test29","txt");
-    open_file(disk,&root_pointer,"test0","txt");
-
-    //read file
-    uint16_t read_amount = 550;
-    char *test_data = malloc((read_amount+1)*sizeof(char));
-    MY_FILE *o_file = open_file(disk,folder1_2,"ftest3","txt");
-    while(!o_file->isEOF) {
-        int bytes_written = read_data(disk, o_file, test_data, read_amount);
-        test_data[bytes_written] = '\0';
-        printf("%s", test_data);
-    }
-    free(test_data);
 }
+
 
 MY_FILE *move_file(void *disk,MY_FILE *new_folder,
         MY_FILE *parent,MY_FILE *file,char name[NAME_LENGTH],char ext[EXT_LENGTH]){
@@ -233,7 +89,6 @@ void delete_file(void *disk, MY_FILE *parent, char *filename, char *ext ){
             memcpy(&check_fat, disk + dir_disk_loc + ENTRY_SIZE - sizeof(uint16_t), sizeof(uint16_t));
             d_search+=ENTRY_SIZE;
         }
-        printf("check fat %d real fat %d\n",check_fat,parent->FAT_LOC);
     }
 
     //BAD if goes across a block
@@ -272,7 +127,6 @@ void delete_file(void *disk, MY_FILE *parent, char *filename, char *ext ){
 
     //erase fat
     uint16_t first_fat_loc = entry.FAT_location;
-    printf("fat %x\n",first_fat_loc);
     erase_fat(disk, entry.FAT_location);
 
     //erase dir info
@@ -283,7 +137,6 @@ void delete_file(void *disk, MY_FILE *parent, char *filename, char *ext ){
     read_data(disk,parent,rest_of_data,amount_of_data);
     parent->data_loc = (uint16_t) (old_data_loc - ENTRY_SIZE);
     write_data(disk,parent,rest_of_data,amount_of_data);
-    printf("fat %x\n",fat_value(disk,first_fat_loc));
 }
 
 void entry_to_myfile(const MY_FILE *parent, struct dir_entry *entry, MY_FILE *dir_file) {
@@ -447,7 +300,6 @@ MY_FILE *create_file(void *disk,MY_FILE *parent, char name[NAME_LENGTH],char ext
             memcpy(&check_fat, disk + dir_disk_loc + ENTRY_SIZE - sizeof(uint16_t), sizeof(uint16_t));
             d_search+=ENTRY_SIZE;
         }
-        printf("check fat %d real fat %d\n",check_fat,parent->FAT_LOC);
     }
     uint16_t d_size;
     memcpy(&d_size,disk+dir_disk_loc+NAME_LENGTH+EXT_LENGTH, sizeof(uint16_t));
