@@ -4,7 +4,7 @@
 
 #include <stdio.h>
 #include <malloc.h>
-#include "first_test.h"
+#include "test.h"
 
 void first_test(struct boot my_boot){
     //Load Test File.txt to write to disk
@@ -17,11 +17,11 @@ void first_test(struct boot my_boot){
     fclose(test_file);
 
     //create test file write to logic dir, write to fat, and write to disk
-    MY_FILE root_pointer;
-    root_pointer.FAT_LOC=my_boot.root.FAT_location;
-    root_pointer.isEOF=false;
-    root_pointer.data_loc=0;
-    root_pointer.DATA_SIZE=my_boot.root.size;
+    MY_FILE root_folder;
+    root_folder.FAT_LOC=my_boot.root.FAT_location;
+    root_folder.isEOF=false;
+    root_folder.data_loc=0;
+    root_folder.DATA_SIZE=my_boot.root.size;
 
     srandom((unsigned int) time(NULL));
     MY_FILE *file[35];
@@ -34,21 +34,22 @@ void first_test(struct boot my_boot){
         sprintf(str,"%d",i);
         strcat(name,str);
         strcat(name,"\0");
-        printf("%s %d \n",name,bytes);
-        file[i] = create_file(&root_pointer, name, "txt", my_test_file_data+start, bytes);
+        //printf("%s %d \n",name,bytes);
+        file[i] = create_file(&root_folder, name, "txt", my_test_file_data+start, bytes);
     }
 
 
     //delete_file(disk,&root_file,"test30","txt");
-    MY_FILE *folder1 = make_dir(&root_pointer,"folder1");
-    user_create_file(folder1,"ftest1","txt","Hello World! this is a test string in an interior folder",56);
+    MY_FILE *folder1 = make_dir(&root_folder,"folder1");
+    MY_FILE *ftest1
+        = user_create_file(folder1,"ftest1","txt","Hello World! this is a test string in an interior folder",56);
     //delete_file(disk,&root_file,"folder1","\\\\\\");
-    //create_file(disk, &root_pointer, "new file", "txt", my_test_file_data, 1050);
-    //move_file(disk,folder1,&root_pointer,file[10],"test9","txt");
+    //create_file(disk, &root_folder, "new file", "txt", my_test_file_data, 1050);
+    //move_file(disk,folder1,&root_folder,file[10],"test9","txt");
     MY_FILE *folder1_2 = make_dir(folder1,"fol1_2");
-    user_create_file(folder1_2,"ftest3","txt","file in folder in a folder",26);
+    user_create_file(folder1_2,"ftest3","txt","file in folder in a folder\n",27);
     copy_file(folder1_2,file[30],"test29","txt");
-    open_file(&root_pointer,"test0","txt");
+    open_file(&root_folder,"test0","txt");
 
     //read file
     uint16_t read_amount = 550;
@@ -61,4 +62,9 @@ void first_test(struct boot my_boot){
     }
     free(test_data);
     close_file(o_file);
+    printf("folder1's fat %d\n",folder1->FAT_LOC);
+    printf("ftest1's fat %d\n",ftest1->FAT_LOC);
+    printf("fol1_2's fat %d\n",folder1_2->FAT_LOC);
+    delete_file(&root_folder,"folder1","\\\\\\");
+    make_dir(&root_folder,"folder2");
 }

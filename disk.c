@@ -3,7 +3,7 @@
 //
 #include "disk.h"
 #include "my_stack.h"
-#include "first_test.h"
+#include "test.h"
 
 void *disk;
 int main(){
@@ -35,8 +35,7 @@ void create_disk(struct boot my_boot){
 }
 
 
-MY_FILE *move_file(MY_FILE *new_folder,
-        MY_FILE *parent,MY_FILE *file,char name[NAME_LENGTH],char ext[EXT_LENGTH]){
+MY_FILE *move_file(MY_FILE *new_folder, MY_FILE *parent,MY_FILE *file,char name[NAME_LENGTH],char ext[EXT_LENGTH]){
     MY_FILE *new_file = copy_file(new_folder,file,name,ext);
     delete_file(parent,name,ext);
     return new_file;
@@ -220,7 +219,6 @@ uint16_t seek_data(struct MY_FILE *p_file, uint16_t offset, int whence){
     uint32_t user_loc = p_file->disk_pos-USER_SPACE_LOCATION; //location in the user space
     uint16_t block_loc = (uint16_t) (user_loc % BLOCK_SIZE); //location in specific block
     uint16_t fat_loc  = (uint16_t) (user_loc / BLOCK_SIZE);*/
-
 }
 
 uint16_t read_data(struct MY_FILE *p_file,void *data, uint16_t bytes){
