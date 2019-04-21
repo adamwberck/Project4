@@ -69,6 +69,9 @@ struct boot{
     struct dir_entry root;
 };
 
+void display_everything();
+void display_file(struct dir_entry entry,MY_FILE *file,int depth);
+void root_to_myfile();
 void close_file(MY_FILE *file);
 void create_disk(struct boot my_boot);
 MY_FILE *open_file(MY_FILE *parent,char name[NAME_LENGTH],char ext[EXT_LENGTH]);

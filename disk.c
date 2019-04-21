@@ -9,7 +9,7 @@
 void *disk;
 MY_FILE *current_dir;
 struct my_dir_stack dir_stack;
-void root_my_file();
+
 const char *FOLDER_EXT = "\\\\\\";
 int main(){
     dir_stack = create_my_dir_stack();
@@ -23,10 +23,51 @@ int main(){
     write_file_to_fat(my_boot.root,disk);
 
     MY_FILE *root_folder = malloc(sizeof(MY_FILE));
-    root_my_file(my_boot,root_folder);
+    root_to_myfile(my_boot, root_folder);
     current_dir = root_folder;
     first_test(my_boot);
+
+    char raw_root[ENTRY_SIZE];
+    memcpy(raw_root,disk+ROOT_LOCATION,ENTRY_SIZE);
+    data_to_entry(raw_root,&my_boot.root);
+    root_folder->DATA_SIZE=my_boot.root.size;
+    display_file(my_boot.root,root_folder,1);
 }
+
+void display_everything(){
+
+}
+
+void display_entry(struct dir_entry entry){
+    if(memcmp(entry.extension,"\\\\\\",EXT_LENGTH)==0){
+        printf("%.9s\n",entry.name);
+        return;
+    }
+    printf("%.9s.%.3s %.5d\n",entry.name,entry.extension,entry.size);
+}
+
+void display_file(struct dir_entry entry,MY_FILE *file,int depth){
+    //if its folder display its contents
+    for(int i=0;i<depth;i++) {
+        printf("|");
+    }
+    display_entry(entry);
+    if(memcmp(entry.extension,"\\\\\\",EXT_LENGTH)==0){
+        depth++;
+        while(!file->isEOF) {
+            char data[ENTRY_SIZE];
+            read_data(file, data, ENTRY_SIZE);
+            struct dir_entry new_entry;
+            data_to_entry(data, &new_entry);
+            MY_FILE new_file;
+            entry_to_myfile(file,&new_entry,&new_file);
+            display_file(new_entry,&new_file,depth);
+        }
+        file->isEOF=false;
+        file->data_loc=0;
+    }
+}
+
 
 void change_dir(char name[NAME_LENGTH]){
     if(strcmp(name,"..")==0 && dir_stack.size>0){
@@ -45,7 +86,7 @@ void change_dir(char name[NAME_LENGTH]){
     printf("Couldn't find directory %s\n",name);
 }
 
-void root_my_file(struct boot my_boot,MY_FILE root_folder) {
+void root_to_myfile(struct boot my_boot, MY_FILE root_folder) {
     root_folder.FAT_LOC=my_boot.root.FAT_location;
     root_folder.isEOF=false;
     root_folder.data_loc=0;
