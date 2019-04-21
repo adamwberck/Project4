@@ -96,3 +96,20 @@ void display_file_data(MY_FILE *file){
         printf("%s",data);
     }
 }
+
+void delete_dir(MY_FILE *parent, char *name ){
+    name = uniform_the_name(name);
+    delete_file(parent,name,"\\\\\\");
+    free(name);
+}
+
+
+void user_delete_file(MY_FILE *parent, char *name, char *ext ){
+    name = uniform_the_name(name);
+    ext  = uniform_the_ext(ext);
+    if(strstr(name,"\\")==NULL && strstr(ext,"\\")==NULL) {
+        delete_file(parent,name,ext);
+        free(name);free(ext);
+    }
+    free(name);free(ext);
+}

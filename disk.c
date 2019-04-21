@@ -184,7 +184,7 @@ void delete_file(MY_FILE *parent, char *filename, char *ext ){
         return;
     }
 
-    //edit size in parent
+    //edit the size in parent
     //special case if file is in root then the dir information is in the BOOT SECTOR
     uint32_t dir_disk_loc=ROOT_LOCATION;
     if(parent->FAT_LOC!=0) {

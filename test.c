@@ -63,4 +63,5 @@ void second_test(){
     MY_FILE *test3 = user_create_file(current_dir,"test3","txt","This is 3 test of file creation",31);
     display_everything();
     display_file_data(test3);
+    user_delete_file(current_dir,"test2","txt");
 }

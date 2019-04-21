@@ -14,4 +14,6 @@ MY_FILE *user_create_file(MY_FILE *parent,char *name,char *ext,char *data,uint16
 void display_file_data(MY_FILE *file);
 char *uniform_the_ext(char *ext);
 char *uniform_the_name(char *name);
+void user_delete_file(MY_FILE *parent, char *name, char *ext );
+void delete_dir(MY_FILE *parent, char *name );
 #endif //PROJECT4_USER_COMMANDS_H
