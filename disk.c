@@ -68,7 +68,7 @@ void display_file(struct dir_entry entry,MY_FILE *file,int depth){
         if(isFOLDER || i+1<depth) {
             printf("|");
         } else{
-            printf("\t");
+            printf("-");
         }
     }
     display_entry(entry);
