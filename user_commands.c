@@ -91,9 +91,11 @@ void display_file_data(MY_FILE *file){
     file->data_loc=0;
     file->isEOF=false;
     while(!file->isEOF){
-        char data[file->DATA_SIZE];
+        char data[file->DATA_SIZE+1];
         read_data(file,data,file->DATA_SIZE);
+        data[file->DATA_SIZE]=0;
         printf("%s",data);
+        fflush(STDIN_FILENO);
     }
 }
 
@@ -110,6 +112,7 @@ void user_delete_file(MY_FILE *parent, char *name, char *ext ){
     if(strstr(name,"\\")==NULL && strstr(ext,"\\")==NULL) {
         delete_file(parent,name,ext);
         free(name);free(ext);
+        return;
     }
     free(name);free(ext);
 }
