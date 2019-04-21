@@ -23,26 +23,25 @@ void first_test(struct boot my_boot){
     root_folder.data_loc=0;
     root_folder.DATA_SIZE=my_boot.root.size;
 
-    srandom((unsigned int) time(NULL));
+    //srandom((unsigned int) time(NULL));
     MY_FILE *file[35];
     for(int i=0;i<35;i++) {
         uint16_t start = (uint16_t) (random() % (strlen(my_test_file_data)-100));
         uint16_t bytes = (uint16_t) (random() % (strlen(my_test_file_data)-start));
-        char name[7];
-        strcpy(name,"test");
+        char name[9]="\0\0\0\0\0\0\0\0\0";
+        memcpy(name,"test",4);
         char str[3];
         sprintf(str,"%d",i);
         strcat(name,str);
-        strcat(name,"\0");
-        //printf("%s %d \n",name,bytes);
+        printf("%s %d \n",name,bytes);
         file[i] = create_file(&root_folder, name, "txt", my_test_file_data+start, bytes);
     }
 
 
-    //delete_file(disk,&root_file,"test30","txt");
-    MY_FILE *folder1 = make_dir(&root_folder,"folder1");
+    //delete_file(&root_folder,"test30","txt");
+    MY_FILE *folder1 = make_dir(&root_folder,"folder1\0\0");
     MY_FILE *ftest1
-        = user_create_file(folder1,"ftest1","txt","Hello World! this is a test string in an interior folder",56);
+        = user_create_file(folder1,"ftest1\0\0\0","txt","Hello World! this is a test string in an interior folder",56);
     //delete_file(disk,&root_file,"folder1","\\\\\\");
     //create_file(disk, &root_folder, "new file", "txt", my_test_file_data, 1050);
     //move_file(disk,folder1,&root_folder,file[10],"test9","txt");
@@ -67,4 +66,8 @@ void first_test(struct boot my_boot){
     printf("fol1_2's fat %d\n",folder1_2->FAT_LOC);
     delete_file(&root_folder,"folder1","\\\\\\");
     make_dir(&root_folder,"folder2");
+}
+
+void second_test(){
+
 }

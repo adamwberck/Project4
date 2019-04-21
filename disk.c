@@ -3,18 +3,53 @@
 //
 #include "disk.h"
 #include "my_stack.h"
+#include "my_dir_stack.h"
 #include "test.h"
 
 void *disk;
+MY_FILE *current_dir;
+struct my_dir_stack dir_stack;
+void root_my_file();
+const char *FOLDER_EXT = "\\\\\\";
 int main(){
+    dir_stack = create_my_dir_stack();
     struct boot my_boot = create_boot();
     create_disk(my_boot);
-    //COPY my_test_file_data using mmap();
+
+    //using mmap to open my_disk
     int int_disk = open("my_disk",O_RDWR,0);
     disk = mmap(NULL,TOTAL_SIZE,PROT_READ|PROT_WRITE,MAP_SHARED,int_disk,0);
     write_dir_entry(my_boot.root,ROOT_LOCATION);
     write_file_to_fat(my_boot.root,disk);
+
+    MY_FILE *root_folder = malloc(sizeof(MY_FILE));
+    root_my_file(my_boot,root_folder);
+    current_dir = root_folder;
     first_test(my_boot);
+}
+
+void change_dir(char name[NAME_LENGTH]){
+    if(strcmp(name,"..")==0 && dir_stack.size>0){
+        current_dir=pop_my_dir_stack(&dir_stack);
+        free(current_dir);
+        return;
+    }
+    struct dir_entry entry;
+    if(seek_to_dir_entry(&entry,current_dir,name,FOLDER_EXT)){
+        MY_FILE *new_dir = malloc(sizeof(MY_FILE));
+        entry_to_myfile(current_dir,&entry,new_dir);
+        put_my_dir_stack(&dir_stack, current_dir);
+        free(current_dir);
+        current_dir = new_dir;
+    }
+    printf("Couldn't find directory %s\n",name);
+}
+
+void root_my_file(struct boot my_boot,MY_FILE root_folder) {
+    root_folder.FAT_LOC=my_boot.root.FAT_location;
+    root_folder.isEOF=false;
+    root_folder.data_loc=0;
+    root_folder.DATA_SIZE=my_boot.root.size;
 }
 
 void create_disk(struct boot my_boot){
@@ -45,7 +80,10 @@ MY_FILE *open_file(MY_FILE *parent,char name[NAME_LENGTH],char ext[EXT_LENGTH]){
     struct dir_entry entry;
     parent->isEOF=false;
     parent->data_loc=0;
-    seek_to_dir_entry(&entry,parent,name,ext);
+    if(!seek_to_dir_entry(&entry,parent,name,ext)){
+        printf("Couldn't find %s.%s\n",name,ext);
+        return NULL;
+    }
     parent->isEOF=false;
     parent->data_loc=0;
     MY_FILE *file = malloc(sizeof(MY_FILE));
@@ -102,8 +140,10 @@ void delete_file(MY_FILE *parent, char *filename, char *ext ){
     parent->data_loc=0;
     //get dir entry
     struct dir_entry entry;
-    seek_to_dir_entry(&entry,parent,filename,ext);
-
+    if(!seek_to_dir_entry(&entry,parent,filename,ext)){
+        printf("Couldn't find %s.%s\n",filename,ext);
+        return;
+    }
     //check if its a folder
     if(memcmp(entry.extension,"\\\\\\",3)==0){
         //if its a folder clear all the fat of the sub files
@@ -154,8 +194,10 @@ bool seek_to_dir_entry(struct dir_entry *entry,MY_FILE *parent, const char *file
     while(!parent->isEOF && !(n && e)) {
         read_data(parent,raw_entry_data,ENTRY_SIZE);
         data_to_entry(raw_entry_data, entry);
-        n = memcmp(filename, entry->name, strlen(filename)) == 0;
-        e = memcmp(ext, entry->extension, strlen(ext)) == 0;
+        int name_len = (int) fmin(strlen(filename), NAME_LENGTH);
+        n = memcmp(filename, entry->name, name_len) == 0;
+        int ext_len = (int) fmin(strlen(ext), EXT_LENGTH);
+        e = memcmp(ext, entry->extension, ext_len) == 0;
     }
     parent->data_loc-=ENTRY_SIZE;
     return n&&e;
@@ -164,8 +206,10 @@ bool seek_to_dir_entry(struct dir_entry *entry,MY_FILE *parent, const char *file
 void data_to_entry(char data[32], struct dir_entry *p_entry) {
     memcpy(p_entry->name,data,NAME_LENGTH);
     data+=NAME_LENGTH;
+
     memcpy(p_entry->extension,data,EXT_LENGTH);
     data+=EXT_LENGTH;
+
     memcpy(&p_entry->size,data,sizeof(int16_t));
     data+=sizeof(int16_t);
     memcpy(&p_entry->create_time,data,sizeof(time_t));
@@ -310,7 +354,7 @@ MY_FILE *create_file(MY_FILE *parent, char name[NAME_LENGTH],char ext[EXT_LENGTH
     char dir_entry_data[ENTRY_SIZE];
     entry_to_data(entry,dir_entry_data);
     write_data(parent,dir_entry_data,ENTRY_SIZE);
-
+    parent->DATA_SIZE+=ENTRY_SIZE;
 
     //init the file pointer*/
     MY_FILE *my_file=malloc(sizeof(MY_FILE));

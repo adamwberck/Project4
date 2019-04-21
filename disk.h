@@ -38,6 +38,8 @@
 #define EXT_LENGTH 3
 #define TOTAL_BLOCKS 4096
 
+
+
 struct MY_FILE {
     uint16_t data_loc;
     uint16_t DATA_SIZE;
