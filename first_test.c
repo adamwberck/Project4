@@ -60,4 +60,5 @@ void first_test(void * disk,struct boot my_boot){
         printf("%s", test_data);
     }
     free(test_data);
+    close_file(o_file);
 }

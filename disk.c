@@ -53,7 +53,7 @@ MY_FILE *open_file(void *disk,MY_FILE *parent,char name[NAME_LENGTH],char ext[EX
     return file;
 }
 
-void *close_file(MY_FILE *file) {
+void close_file(MY_FILE *file) {
     free(file);
 }
 

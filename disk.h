@@ -67,6 +67,7 @@ struct boot{
     struct dir_entry root;
 };
 
+void close_file(MY_FILE *file);
 void create_disk(struct boot my_boot);
 MY_FILE *open_file(void *disk,MY_FILE *parent,char name[NAME_LENGTH],char ext[EXT_LENGTH]);
 MY_FILE *move_file(void *disk,MY_FILE *new_folder, MY_FILE *parent,MY_FILE *file,char name[NAME_LENGTH],
