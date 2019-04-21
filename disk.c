@@ -53,7 +53,7 @@ void display_entry(struct dir_entry entry){
     memcpy(new_ext,entry.extension,len);
     new_ext[len]=0;
 
-    if(memcmp(entry.extension,"\\\\\\",EXT_LENGTH)==0){
+    if(memcmp(entry.extension,FOLDER_EXT,EXT_LENGTH)==0){
         printf("%.9s\n",new_name);
         return;
     }
@@ -62,16 +62,16 @@ void display_entry(struct dir_entry entry){
 
 void display_file(struct dir_entry entry,MY_FILE *file,int depth){
     //if its folder display its contents
+    bool isFOLDER = memcmp(entry.extension,FOLDER_EXT,EXT_LENGTH)==0;
     for(int i=0;i<depth;i++) {
-        if(depth==1 || i+1<depth) {
+        if(isFOLDER || i+1<depth) {
             printf("|");
         } else{
             printf("-");
         }
-
     }
     display_entry(entry);
-    if(memcmp(entry.extension,"\\\\\\",EXT_LENGTH)==0){
+    if(isFOLDER){
         depth++;
         while(!file->isEOF) {
             char data[ENTRY_SIZE];
@@ -161,7 +161,7 @@ MY_FILE *copy_file(MY_FILE *new_folder,MY_FILE *file,char name[NAME_LENGTH],char
     read_data(file,data,file->DATA_SIZE);
     MY_FILE *copied_file = create_file(new_folder,name,ext,data,file->DATA_SIZE);
     //if you are copying a folder
-    if(strcmp(ext,"\\\\\\")==0){
+    if(strcmp(ext,FOLDER_EXT)==0){
         //read the data from the copied file
         char copy_data[ENTRY_SIZE];
         read_data(file,copy_data,ENTRY_SIZE);
@@ -206,16 +206,15 @@ void delete_file(MY_FILE *parent, char *filename, char *ext ){
     }
     //special case if file is in root then the dir information is in the BOOT SECTOR
     else{
-        uint32_t dir_disk_loc=ROOT_LOCATION;
         uint16_t d_size;
-        memcpy(&d_size,disk+dir_disk_loc+NAME_LENGTH+EXT_LENGTH, sizeof(uint16_t));
+        memcpy(&d_size,disk+ROOT_LOCATION+NAME_LENGTH+EXT_LENGTH, sizeof(uint16_t));
         parent->DATA_SIZE=d_size;
         d_size-=ENTRY_SIZE;
-        memcpy(disk+dir_disk_loc+NAME_LENGTH+EXT_LENGTH,&d_size,sizeof(uint16_t));
+        memcpy(disk+ROOT_LOCATION+NAME_LENGTH+EXT_LENGTH,&d_size,sizeof(uint16_t));
     }
 
     //check if its a folder
-    if(memcmp(entry.extension,"\\\\\\",3)==0){
+    if(memcmp(entry.extension,FOLDER_EXT,3)==0){
         //if its a folder clear all the fat of the sub files
         MY_FILE dir_file;
         entry_to_myfile(parent, &entry, &dir_file);
@@ -404,20 +403,28 @@ MY_FILE *create_file(MY_FILE *parent, char name[NAME_LENGTH],char ext[EXT_LENGTH
 
     //edit size in parent
     //special case if file is in root then the dir information is in the BOOT SECTOR
-    uint32_t dir_disk_loc=ROOT_LOCATION;
+    MY_FILE temp_file;
+    temp_file.data_loc=0;temp_file.DATA_SIZE=MAX_SIZE;temp_file.isEOF=false;temp_file.FAT_LOC=parent->pFAT_LOC;
+    uint16_t d_size;
     if(parent->FAT_LOC!=0) {
         uint16_t check_fat=0;
-        uint16_t d_search =0;
-        while(d_search<MAX_SIZE-ENTRY_SIZE && check_fat != parent->FAT_LOC) {
-            dir_disk_loc = get_disk_pos(parent->pFAT_LOC, d_search);
-            memcpy(&check_fat, disk + dir_disk_loc + ENTRY_SIZE - sizeof(uint16_t), sizeof(uint16_t));
-            d_search+=ENTRY_SIZE;
+        while (!temp_file.isEOF && check_fat != parent->FAT_LOC) {
+            temp_file.data_loc += ENTRY_SIZE - sizeof(uint16_t);
+            read_data(&temp_file, &check_fat, sizeof(uint16_t));
         }
+        temp_file.data_loc -= ENTRY_SIZE;
+        temp_file.data_loc += NAME_LENGTH + EXT_LENGTH;
+
+        read_data(&temp_file, &d_size, sizeof(uint16_t));
+        parent->DATA_SIZE = d_size;
+        d_size += ENTRY_SIZE;
+        temp_file.data_loc -= sizeof(uint16_t);
+        write_data(&temp_file, &d_size, sizeof(uint16_t));
+    }else {
+        memcpy(&d_size, disk + ROOT_LOCATION + NAME_LENGTH + EXT_LENGTH, sizeof(uint16_t));
+        d_size += ENTRY_SIZE;
+        memcpy(disk + ROOT_LOCATION+ NAME_LENGTH + EXT_LENGTH, &d_size, sizeof(uint16_t));
     }
-    uint16_t d_size;
-    memcpy(&d_size,disk+dir_disk_loc+NAME_LENGTH+EXT_LENGTH, sizeof(uint16_t));
-    d_size+=ENTRY_SIZE;
-    memcpy(disk+dir_disk_loc+NAME_LENGTH+EXT_LENGTH,&d_size,sizeof(uint16_t));
 
     //add file info to the directory
     parent->DATA_SIZE= (uint16_t) (d_size - ENTRY_SIZE);
@@ -443,8 +450,8 @@ MY_FILE *create_file(MY_FILE *parent, char name[NAME_LENGTH],char ext[EXT_LENGTH
 }
 
 void entry_to_data(struct dir_entry entry,char array[ENTRY_SIZE]){
-    /*char *null_str = "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
-    memcpy(array,null_str,ENTRY_SIZE);*/
+    char *null_str = "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
+    memcpy(array,null_str,ENTRY_SIZE);
 
     memcpy(array,entry.name,strlen(entry.name));
     array+=NAME_LENGTH;
@@ -543,7 +550,7 @@ uint16_t fat_value(uint16_t block){
 }
 
 struct dir_entry create_root(){
-    return create_entry("root\0","\\\\\\",0,time(NULL),time(NULL),0);
+    return create_entry("root\0",FOLDER_EXT,0,time(NULL),time(NULL),0);
 }
 
 struct dir_entry create_entry(char name[NAME_LENGTH],char extension[EXT_LENGTH],uint16_t size,

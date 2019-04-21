@@ -53,19 +53,22 @@ void first_test(struct boot my_boot){
 }
 
 void second_test(){
-    make_dir(current_dir,"folder1");
+    make_dir(current_dir,"folder123");
     user_create_file(current_dir,"testA","txt","This is a test of file creation",31);
-    change_dir("folder1");
+    change_dir("folder123");
     user_create_file(current_dir,"test0","txt","This is 0 test of file creation",31);
     user_create_file(current_dir,"test1","txt","This is 1 test of file creation",31);
     make_dir(current_dir,"sub1");
     change_dir("sub1");
-    user_create_file(current_dir,"test2","txt","This is 2 test of file creation",31);
-    MY_FILE *test3 = user_create_file(current_dir,"test3","txt","This is 3 test of file creation",31);
+    user_create_file(current_dir,"abcdefghi","txt","This is 2 test of file creation",31);
+    user_create_file(current_dir,"test3","txt","This is 3 test of file creation",31);
     display_everything();
-    user_delete_file(current_dir,"test2","txt");
     change_dir("..");
     change_dir("..");
     user_delete_file(current_dir,"testA","txt");
     display_everything();
+}
+
+void third_test(){
+
 }
