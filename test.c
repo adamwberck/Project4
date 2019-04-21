@@ -64,8 +64,10 @@ void first_test(struct boot my_boot){
     printf("folder1's fat %d\n",folder1->FAT_LOC);
     printf("ftest1's fat %d\n",ftest1->FAT_LOC);
     printf("fol1_2's fat %d\n",folder1_2->FAT_LOC);
-    delete_file(&root_folder,"folder1","\\\\\\");
-    make_dir(&root_folder,"folder2");
+    //delete_file(&root_folder,"folder1","\\\\\\");
+    MY_FILE *folder2 = make_dir(&root_folder,"folder2");
+    user_create_file(folder2,"new_file","txt","Once upon a time there was a test file\n",39);
+    copy_file(folder2,folder1,"folder1c","\\\\\\");
 }
 
 void second_test(){

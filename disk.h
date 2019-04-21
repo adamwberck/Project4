@@ -96,7 +96,7 @@ uint16_t get_free_block(uint16_t start);
 uint16_t read_data(struct MY_FILE *p_file,void *data, uint16_t bytes);
 off_t fsize(const char *filename);
 void erase_fat( uint16_t fat_loc);
-void data_to_entry(char data[32], struct dir_entry *p_entry);
+void data_to_entry(char data[32], struct dir_entry *new_entry);
 
 
 #endif //PROJECT4_MAIN_H

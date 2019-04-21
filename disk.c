@@ -70,6 +70,20 @@ void create_disk(struct boot my_boot){
 }
 
 
+MY_FILE *move_directory(MY_FILE *new_folder, MY_FILE *parent,MY_FILE *file,char name[NAME_LENGTH]){
+    return move_file(new_folder,parent,file,name,"\\\\\\");
+}
+
+MY_FILE *user_move_file(MY_FILE *new_folder, MY_FILE *parent,MY_FILE *file,char name[NAME_LENGTH],char ext[EXT_LENGTH]){
+    if(strstr(name,"\\")==NULL && strstr(ext,"\\")==NULL) {
+        MY_FILE *new_file = copy_file(new_folder,file,name,ext);
+        delete_file(parent,name,ext);
+        return new_file;
+    }
+    return NULL;
+}
+
+
 MY_FILE *move_file(MY_FILE *new_folder, MY_FILE *parent,MY_FILE *file,char name[NAME_LENGTH],char ext[EXT_LENGTH]){
     MY_FILE *new_file = copy_file(new_folder,file,name,ext);
     delete_file(parent,name,ext);
@@ -95,10 +109,36 @@ void close_file(MY_FILE *file) {
     free(file);
 }
 
+MY_FILE *copy_dir(MY_FILE *new_folder,MY_FILE *duplicating_file,char name[NAME_LENGTH]){
+    return copy_file( new_folder, duplicating_file, name, "\\\\\\");
+}
+
+//copy file that doesn't allow real files to be copied as folders
+MY_FILE *user_copy_file(MY_FILE *new_folder,MY_FILE *file,char name[NAME_LENGTH],char ext[EXT_LENGTH]){
+    if(strstr(name,"\\")==NULL && strstr(ext,"\\")==NULL) {
+        return copy_file( new_folder, file, name, ext);
+    }
+    return NULL;
+}
+
+
 MY_FILE *copy_file(MY_FILE *new_folder,MY_FILE *file,char name[NAME_LENGTH],char ext[EXT_LENGTH]){
     char data[file->DATA_SIZE];
     read_data(file,data,file->DATA_SIZE);
-    return create_file(new_folder,name,ext,data,file->DATA_SIZE);
+    MY_FILE *copied_file = create_file(new_folder,name,ext,data,file->DATA_SIZE);
+    //if you are copying a folder
+    if(strcmp(ext,"\\\\\\")==0){
+        //read the data from the copied file
+        char copy_data[ENTRY_SIZE];
+        read_data(file,copy_data,ENTRY_SIZE);
+        struct dir_entry copy_entry;
+        data_to_entry(copy_data,&copy_entry);
+        MY_FILE sub_file_copy;
+        entry_to_myfile(copied_file,&copy_entry,&sub_file_copy);
+        //recursive copy the files that are in the folder
+        copy_file(copied_file,&sub_file_copy,copy_entry.name,copy_entry.extension);
+    }
+    return copied_file;
 }
 
 MY_FILE *make_dir(MY_FILE *parent,char *name){
@@ -115,6 +155,14 @@ MY_FILE *user_create_file(MY_FILE *parent,char *name,char *ext,char *data,uint16
 }
 
 void delete_file(MY_FILE *parent, char *filename, char *ext ){
+    //add file info to the directory
+    parent->data_loc=0;
+    //get dir entry
+    struct dir_entry entry;
+    if(!seek_to_dir_entry(&entry,parent,filename,ext)){
+        printf("Couldn't find %s.%s\n",filename,ext);
+        return;
+    }
 
     //edit size in parent
     //special case if file is in root then the dir information is in the BOOT SECTOR
@@ -136,14 +184,6 @@ void delete_file(MY_FILE *parent, char *filename, char *ext ){
     d_size-=ENTRY_SIZE;
     memcpy(disk+dir_disk_loc+NAME_LENGTH+EXT_LENGTH,&d_size,sizeof(uint16_t));
 
-    //add file info to the directory
-    parent->data_loc=0;
-    //get dir entry
-    struct dir_entry entry;
-    if(!seek_to_dir_entry(&entry,parent,filename,ext)){
-        printf("Couldn't find %s.%s\n",filename,ext);
-        return;
-    }
     //check if its a folder
     if(memcmp(entry.extension,"\\\\\\",3)==0){
         //if its a folder clear all the fat of the sub files
@@ -203,20 +243,20 @@ bool seek_to_dir_entry(struct dir_entry *entry,MY_FILE *parent, const char *file
     return n&&e;
 }
 
-void data_to_entry(char data[32], struct dir_entry *p_entry) {
-    memcpy(p_entry->name,data,NAME_LENGTH);
+void data_to_entry(char data[32], struct dir_entry *new_entry) {
+    memcpy(new_entry->name,data,NAME_LENGTH);
     data+=NAME_LENGTH;
 
-    memcpy(p_entry->extension,data,EXT_LENGTH);
+    memcpy(new_entry->extension,data,EXT_LENGTH);
     data+=EXT_LENGTH;
 
-    memcpy(&p_entry->size,data,sizeof(int16_t));
+    memcpy(&new_entry->size,data,sizeof(int16_t));
     data+=sizeof(int16_t);
-    memcpy(&p_entry->create_time,data,sizeof(time_t));
+    memcpy(&new_entry->create_time,data,sizeof(time_t));
     data+=sizeof(time_t);
-    memcpy(&p_entry->mod_time,data,sizeof(time_t));
+    memcpy(&new_entry->mod_time,data,sizeof(time_t));
     data+=sizeof(time_t);
-    memcpy(&p_entry->FAT_location,data, sizeof(int16_t));
+    memcpy(&new_entry->FAT_location,data, sizeof(int16_t));
 }
 
 void erase_fat(uint16_t fat_loc) {
