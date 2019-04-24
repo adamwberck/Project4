@@ -128,10 +128,7 @@ bool my_built_in(int count, char** args) {
         free(my_test_file_data);
     } else if(strcmp(cmd,"read")==0){
         if(opened_file!=NULL) {
-            char data[opened_file->DATA_SIZE];
-            read_data(opened_file, data, opened_file->DATA_SIZE);
-            printf("%s", data);
-            fflush(STDIN_FILENO);
+            display_file_data(opened_file);
         }else{
             printf("No file opened\n");
         }
