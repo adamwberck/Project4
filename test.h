@@ -7,6 +7,7 @@
 #include "disk.h"
 #include "user_commands.h"
 #include "my_dir_stack.h"
+#include <math.h>
 void first_test();
 void second_test();
 

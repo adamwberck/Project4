@@ -18,7 +18,7 @@ char** parse_input(char* input,int count);
 
 int get_count(char *input);
 
-bool my_built_in(char** args);
+void my_built_in(char** args);
 
 
 char *get_prompt() ;

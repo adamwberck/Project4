@@ -44,7 +44,7 @@ char *get_prompt() {
 }
 
 //function does built in commands
-bool my_built_in(char** args) {
+void my_built_in(char** args) {
     char *cmd = args[0];
     //exit or quit
     if (strcmp(cmd, "exit") == 0 || strcmp(cmd, "quit") == 0) {
@@ -65,7 +65,6 @@ bool my_built_in(char** args) {
         disk = mmap(NULL, TOTAL_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, int_disk, 0);
         if (memcmp(my_boot->valid_check, disk, VALID_CHECK_SIZE) != 0) {
             printf("Not correctly formatted disk\n");
-            return true;
         }
         current_disk=args[1];
         //set current dir to root folder

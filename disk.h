@@ -15,7 +15,9 @@
 #include <math.h>
 #include <assert.h>
 #include "my_dir_stack.h"
-
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 
 #define FREE_BLOCK   0x0000
