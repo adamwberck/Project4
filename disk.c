@@ -7,25 +7,36 @@
 #include "test.h"
 
 
-
 const char *FOLDER_EXT = "\\\\\\";
-int main(){
-    dir_stack = create_my_dir_stack();
-    struct boot my_boot = create_boot();
-    create_disk(my_boot);
+void disk_main(char* disk_name){
+    struct boot my_boot = create_new_boot();
+    create_disk(my_boot,disk_name);
 
     //using mmap to open my_disk
-    int int_disk = open("my_disk",O_RDWR,0);
+    int int_disk = open(disk_name,O_RDWR,0);
     disk = mmap(NULL,TOTAL_SIZE,PROT_READ|PROT_WRITE,MAP_SHARED,int_disk,0);
     write_dir_entry(my_boot.root,ROOT_LOCATION);//write the root to boot;
     write_file_to_fat(my_boot.root,disk);//write the fat of the root
 
+}
+
+struct boot create_boot();
+
+void mount(){
     //set current dir to root folder
+    struct boot my_boot = create_boot();
     MY_FILE *root_folder = malloc(sizeof(MY_FILE));
     root_to_myfile(my_boot, root_folder);
     current_dir = root_folder;
+    current_dir_name="root";
     put_my_dir_stack(&dir_stack,root_folder);
-    second_test();
+}
+
+struct boot create_boot() {
+    struct boot result;
+    result=create_new_boot();
+    memcpy(&result.root.size,disk+ROOT_LOCATION+NAME_LENGTH+EXT_LENGTH, sizeof(uint16_t));
+    return result;
 }
 
 void display_everything(){
@@ -74,14 +85,14 @@ void display_file(struct dir_entry entry,MY_FILE *file,int depth){
     display_entry(entry);
     if(isFOLDER){
         depth++;
-        while(!file->isEOF) {
-            char data[ENTRY_SIZE];
-            read_data(file, data, ENTRY_SIZE);
-            struct dir_entry new_entry;
-            data_to_entry(data, &new_entry);
-            MY_FILE new_file;
-            entry_to_myfile(file,&new_entry,&new_file);
-            display_file(new_entry,&new_file,depth);
+        while(!file->isEOF && file->DATA_SIZE>0) {
+                char data[ENTRY_SIZE];
+                read_data(file, data, ENTRY_SIZE);
+                struct dir_entry new_entry;
+                data_to_entry(data, &new_entry);
+                MY_FILE new_file;
+                entry_to_myfile(file, &new_entry, &new_file);
+                display_file(new_entry, &new_file, depth);
         }
         file->isEOF=false;
         file->data_loc=0;
@@ -90,9 +101,26 @@ void display_file(struct dir_entry entry,MY_FILE *file,int depth){
 
 
 void change_dir(char name[NAME_LENGTH]){
-    if(strcmp(name,"..")==0 && dir_stack.size>0){
+    if(strcmp(name,"..")==0 && dir_stack.size>1){
         free(current_dir);
         current_dir=pop_my_dir_stack(&dir_stack);
+        if(dir_stack.size==1){
+            current_dir_name="root";
+        }
+        MY_FILE temp_file;
+        temp_file.data_loc = 0;
+        temp_file.DATA_SIZE = MAX_SIZE;
+        temp_file.isEOF = false;
+        temp_file.FAT_LOC = current_dir->pFAT_LOC;
+        if (current_dir->FAT_LOC != 0) {
+            uint16_t check_fat = 0;
+            while (!temp_file.isEOF && check_fat != current_dir->FAT_LOC) {
+                temp_file.data_loc += ENTRY_SIZE - sizeof(uint16_t);
+                read_data(&temp_file, &check_fat, sizeof(uint16_t));
+            }
+        }
+        temp_file.data_loc -= ENTRY_SIZE;
+        read_data(&temp_file,current_dir_name,NAME_LENGTH);
         return;
     }
     struct dir_entry entry;
@@ -101,20 +129,21 @@ void change_dir(char name[NAME_LENGTH]){
         entry_to_myfile(current_dir,&entry,new_dir);
         put_my_dir_stack(&dir_stack, current_dir);
         current_dir = new_dir;
+        current_dir_name = name;
         return;
     }
     printf("Couldn't find directory %s\n",name);
 }
 
-void root_to_myfile(struct boot my_boot, MY_FILE root_folder) {
-    root_folder.FAT_LOC=my_boot.root.FAT_location;
-    root_folder.isEOF=false;
-    root_folder.data_loc=0;
-    root_folder.DATA_SIZE=my_boot.root.size;
+void root_to_myfile(struct boot my_boot, MY_FILE *root_folder) {
+    root_folder->FAT_LOC=my_boot.root.FAT_location;
+    root_folder->isEOF=false;
+    root_folder->data_loc=0;
+    root_folder->DATA_SIZE=my_boot.root.size;
 }
 
-void create_disk(struct boot my_boot){
-    FILE *new_disk = fopen("my_disk","w+");
+void create_disk(struct boot my_boot,char *name){
+    FILE *new_disk = fopen(name,"w+");
     uint16_t empty = FREE_BLOCK;
     for(int i=0;i<TOTAL_SIZE;i++) {
         fwrite(&empty, sizeof(uint16_t), 1, new_disk);
@@ -554,7 +583,7 @@ struct dir_entry create_entry(char name[NAME_LENGTH],char extension[EXT_LENGTH],
 }
 
 
-struct boot create_boot() {
+struct boot create_new_boot() {
     struct boot b;
     strcpy(b.valid_check,"This is Adam's FAT Drive");
     b.boot_sector_size = BOOT_SECTOR_SIZE;

@@ -17,9 +17,10 @@
 #include "my_dir_stack.h"
 
 
+
 #define FREE_BLOCK   0x0000
 #define NO_LINK 0xFFFF
-
+#define VALID_CHECK_SIZE 24
 #define BOOT_SECTOR_SIZE 512
 #define TOTAL_SIZE 2114048
 #define BLOCK_SIZE 512
@@ -61,12 +62,13 @@ struct boot{
     struct dir_entry root;
 };
 
+void disk_main(char* disk_name);
 void change_dir(char name[NAME_LENGTH]);
 void display_everything();
 void display_file(struct dir_entry entry,MY_FILE *file,int depth);
-void root_to_myfile();
+void root_to_myfile(struct boot my_boot, MY_FILE *root_folder);
 void close_file(MY_FILE *file);
-void create_disk(struct boot my_boot);
+void create_disk(struct boot my_boot,char* disk_name);
 MY_FILE *open_file(MY_FILE *parent,char name[NAME_LENGTH],char ext[EXT_LENGTH]);
 MY_FILE *move_file(MY_FILE *new_folder, MY_FILE *parent,MY_FILE *file,char name[NAME_LENGTH],
         char ext[EXT_LENGTH]);
@@ -83,7 +85,7 @@ void write_dir_entry(struct dir_entry entry,uint32_t location);
 uint16_t fat_value( uint16_t block);
 uint32_t fat_location(bool isFAT1, uint16_t block);
 struct dir_entry create_root();
-struct boot create_boot();
+struct boot create_new_boot();
 struct dir_entry create_entry(char name[9],char extension[3],uint16_t size, time_t create_time,
         time_t mod_time,uint16_t FAT_location);
 uint16_t get_free_block(uint16_t start);
@@ -91,9 +93,11 @@ uint16_t read_data(struct MY_FILE *p_file,void *data, uint16_t bytes);
 off_t fsize(const char *filename);
 void erase_fat( uint16_t fat_loc);
 void data_to_entry(char data[32], struct dir_entry *new_entry);
+void mount();
 
 void *disk;
 MY_FILE *current_dir;
 struct my_dir_stack dir_stack;
+char *current_dir_name;
 
 #endif //PROJECT4_MAIN_H

@@ -16,4 +16,5 @@ char *uniform_the_ext(char *ext);
 char *uniform_the_name(char *name);
 void user_delete_file(MY_FILE *parent, char *name, char *ext );
 void delete_dir(MY_FILE *parent, char *name );
+MY_FILE *user_open_file(MY_FILE *parent,char name[NAME_LENGTH],char ext[EXT_LENGTH]);
 #endif //PROJECT4_USER_COMMANDS_H

@@ -12,6 +12,15 @@ MY_FILE *move_directory(MY_FILE *new_folder, MY_FILE *parent,MY_FILE *file,char 
     return m_file;
 }
 
+
+MY_FILE *user_open_file(MY_FILE *parent,char name[NAME_LENGTH],char ext[EXT_LENGTH]){
+    name = uniform_the_name(name);
+    ext = uniform_the_ext(ext);
+    MY_FILE *file = open_file(parent,name,ext);
+    free(name);free(ext);
+    return file;
+}
+
 MY_FILE *user_move_file(MY_FILE *new_folder, MY_FILE *parent,MY_FILE *file,char name[NAME_LENGTH],char ext[EXT_LENGTH]){
     name = uniform_the_name(name);
     ext = uniform_the_ext(ext);

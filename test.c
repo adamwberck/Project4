@@ -12,7 +12,7 @@ void first_test(struct boot my_boot){
     int test_file_size = (int) fsize("Test File2.txt");
     printf("size %d\n",  test_file_size);
     char *my_test_file_data = malloc(sizeof(char)*test_file_size);
-    fprintf(test_file,"%s",my_test_file_data);
+    //fprintf(test_file,"%s",my_test_file_data);
     fread(my_test_file_data, sizeof(char), (size_t) test_file_size, test_file);
     fclose(test_file);
 
