@@ -86,8 +86,8 @@ bool my_built_in(char** args) {
         display_everything();
     } else if (strcmp(cmd,"create")==0){
         //open file and write it two interior disk
-        FILE *test_file = fopen(args[2],"r");
-        int test_file_size = (int) fsize(args[2]);
+        FILE *test_file = fopen(args[1],"r");
+        int test_file_size = (int) fsize(args[1]);
         printf("size %d\n",  test_file_size);
         char *my_test_file_data = malloc(sizeof(char)*test_file_size);
         fread(my_test_file_data, sizeof(char), (size_t) test_file_size, test_file);
