@@ -34,7 +34,7 @@ int main() {
         int count = get_count(input);
         //parsed_input list of char* pointers
         char **parsed_input = parse_input(input, count);
-        my_built_in(count,parsed_input);
+        my_built_in(parsed_input);
         free(parsed_input);
         repeat++;
     }while(repeat<100000000);//keep going unless end of file, always go if interactive mode
@@ -67,7 +67,7 @@ void perform_write_redirect(char *const *args, int count, int write_redirect) {
 }
 
 //function does built in commands
-bool my_built_in(int count, char** args) {
+bool my_built_in(char** args) {
     char *cmd = args[0];
     //exit or quit
     if (strcmp(cmd, "exit") == 0 || strcmp(cmd, "quit") == 0) {

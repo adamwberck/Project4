@@ -5,7 +5,7 @@
 #ifndef PROJECT4_USER_COMMANDS_H
 #define PROJECT4_USER_COMMANDS_H
 #include "disk.h"
-MY_FILE *move_directory(MY_FILE *new_folder, MY_FILE *parent,MY_FILE *file,char name[NAME_LENGTH]);
+MY_FILE *move_dir(MY_FILE *new_folder, MY_FILE *parent, MY_FILE *file, char *name);
 MY_FILE *user_move_file(MY_FILE *new_folder, MY_FILE *parent,MY_FILE *file,char name[NAME_LENGTH],char ext[EXT_LENGTH]);
 MY_FILE *copy_dir(MY_FILE *new_folder,MY_FILE *duplicating_file,char name[NAME_LENGTH]);
 MY_FILE *user_copy_file(MY_FILE *new_folder,MY_FILE *file,char name[NAME_LENGTH],char ext[EXT_LENGTH]);

@@ -163,7 +163,9 @@ void create_disk(struct boot my_boot,char *name){
 
 MY_FILE *move_file(MY_FILE *new_folder, MY_FILE *parent,MY_FILE *file,char name[NAME_LENGTH],char ext[EXT_LENGTH]){
     MY_FILE *new_file = copy_file(new_folder,file,name,ext);
-    delete_file(parent,name,ext);
+    if(new_file!=NULL) {
+        delete_file(parent, name, ext);
+    }
     return new_file;
 }
 
@@ -190,17 +192,19 @@ MY_FILE *copy_file(MY_FILE *new_folder,MY_FILE *file,char name[NAME_LENGTH],char
     char data[file->DATA_SIZE];
     read_data(file,data,file->DATA_SIZE);
     MY_FILE *copied_file = create_file(new_folder,name,ext,data,file->DATA_SIZE);
-    //if you are copying a folder
-    if(strcmp(ext,FOLDER_EXT)==0){
-        //read the data from the copied file
-        char copy_data[ENTRY_SIZE];
-        read_data(file,copy_data,ENTRY_SIZE);
-        struct dir_entry copy_entry;
-        data_to_entry(copy_data,&copy_entry);
-        MY_FILE sub_file_copy;
-        entry_to_myfile(copied_file,&copy_entry,&sub_file_copy);
-        //recursive copy the files that are in the folder
-        copy_file(copied_file,&sub_file_copy,copy_entry.name,copy_entry.extension);
+    if(copied_file!=NULL) {
+        //if you are copying a folder
+        if (strcmp(ext, FOLDER_EXT) == 0) {
+            //read the data from the copied file
+            char copy_data[ENTRY_SIZE];
+            read_data(file, copy_data, ENTRY_SIZE);
+            struct dir_entry copy_entry;
+            data_to_entry(copy_data, &copy_entry);
+            MY_FILE sub_file_copy;
+            entry_to_myfile(copied_file, &copy_entry, &sub_file_copy);
+            //recursive copy the files that are in the folder
+            copy_file(copied_file, &sub_file_copy, copy_entry.name, copy_entry.extension);
+        }
     }
     return copied_file;
 }

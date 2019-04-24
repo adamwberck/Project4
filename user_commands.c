@@ -5,7 +5,7 @@
 #include "user_commands.h"
 #include "disk.h"
 
-MY_FILE *move_directory(MY_FILE *new_folder, MY_FILE *parent,MY_FILE *file,char name[NAME_LENGTH]){
+MY_FILE *move_dir(MY_FILE *new_folder, MY_FILE *parent, MY_FILE *file, char *name){
     name = uniform_the_name(name);
     MY_FILE *m_file = move_file(new_folder,parent,file,name,"\\\\\\");
     free(name);
@@ -41,9 +41,12 @@ MY_FILE *copy_dir(MY_FILE *new_folder,MY_FILE *duplicating_file,char name[NAME_L
 }
 
 char *uniform_the_name(char name[NAME_LENGTH]){
+
     char *u_name =malloc(NAME_LENGTH* sizeof(char));
-    strcpy(u_name,name);
-    int len = (int) strlen(name);
+    int len = name==NULL ? 0 :(int) strlen(name);
+    if(name!=NULL) {
+        strcpy(u_name, name);
+    }
     while(len<NAME_LENGTH){
         u_name[len++]=0;
     }
@@ -52,8 +55,10 @@ char *uniform_the_name(char name[NAME_LENGTH]){
 
 char *uniform_the_ext(char ext[EXT_LENGTH]){
     char *u_ext =malloc(EXT_LENGTH* sizeof(char));
-    strcpy(u_ext,ext);
-    int len = (int) strlen(ext);
+    int len = ext==NULL ? 0 : (int) strlen(ext);
+    if(ext!=NULL) {
+        strcpy(u_ext, ext);
+    }
     while(len<EXT_LENGTH){
         u_ext[len++]=0;
     }

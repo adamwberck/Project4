@@ -20,7 +20,7 @@ int get_count(char *input);
 
 
 
-bool my_built_in(int count, char** args);
+bool my_built_in(char** args);
 
 
 char *get_prompt() ;
