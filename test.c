@@ -1,11 +1,13 @@
 //
-// Created by mandr on 2019-04-20.
+// Created by Adam on 2019-04-20.
 //
 
 #include <stdio.h>
 #include <malloc.h>
 #include "test.h"
 
+
+//just test functions
 void first_test(struct boot my_boot){
     //Load Test File.txt to write to disk
     FILE *test_file = fopen("Test File2.txt","r");
@@ -67,8 +69,4 @@ void second_test(){
     change_dir("..");
     user_delete_file(current_dir,"testA","txt");
     display_everything();
-}
-
-void third_test(){
-
 }

@@ -42,6 +42,7 @@
 
 
 
+
 struct dir_entry{
     char name[NAME_LENGTH];
     char extension[EXT_LENGTH];
@@ -62,7 +63,9 @@ struct boot{
     struct dir_entry root;
 };
 
-void disk_main(char* disk_name);
+struct boot create_boot();
+uint16_t edit_size_in_directory(const MY_FILE *parent, int direction);
+void new_disk(char *disk_name);
 void change_dir(char name[NAME_LENGTH]);
 void display_everything();
 void display_file(struct dir_entry entry,MY_FILE *file,int depth);

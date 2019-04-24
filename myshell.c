@@ -13,13 +13,6 @@
 #include "disk.h"
 #include "user_commands.h"
 
-#define FD_READ_END 0
-#define FD_WRITE_END 1
-
-
-char** paths;
-int number_of_paths = 0;
-int fd[2];
 
 MY_FILE *opened_file;
 char *current_disk;
@@ -48,22 +41,6 @@ char *get_prompt() {
     strcat(prompt,current_dir_name);
     strcat(prompt,"~FAT shell>");
     return prompt;
-}
-
-
-//use last argument as write redirect argument
-void perform_write_redirect(char *const *args, int count, int write_redirect) {
-    int f=0;
-    //truncate
-    if(write_redirect==1) {
-        f = open(args[count - 1], O_RDWR | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
-    //append
-    }else{
-        f = open(args[count - 1], O_RDWR | O_CREAT | O_APPEND, S_IRUSR | S_IWUSR);
-    }
-    dup2(f,STDOUT_FILENO);//stdout goto file;
-    dup2(f,STDERR_FILENO);//std error goto
-    close(f);
 }
 
 //function does built in commands
@@ -143,7 +120,7 @@ bool my_built_in(char** args) {
     } else if(strcmp(cmd,"rmdir")==0){
         delete_dir(current_dir,args[1]);
     } else if(strcmp(cmd,"disk")==0){
-        disk_main(args[1]);
+        new_disk(args[1]);
     }
 }
 //counts the different arguments in input including command

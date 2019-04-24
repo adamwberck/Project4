@@ -5,6 +5,10 @@
 #include "user_commands.h"
 #include "disk.h"
 
+//user commands just do what disk commands do but checks the input first to ensure its okay
+
+
+
 MY_FILE *move_dir(MY_FILE *new_folder, MY_FILE *parent, MY_FILE *file, char *name){
     name = uniform_the_name(name);
     MY_FILE *m_file = move_file(new_folder,parent,file,name,"\\\\\\");
